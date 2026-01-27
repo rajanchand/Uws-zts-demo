@@ -223,6 +223,11 @@ router.post('/login', loginLimiter, async (req, res) => {
         const country = geo.country || 'Unknown';
         const vpn = isVPNConnection(ip) || geo.isProxy;
 
+        console.log(`\n[DEBUG] VPN CHECK - IP: ${ip}`);
+        console.log(`[DEBUG] Geo Country: ${country}, isProxy: ${geo.isProxy}`);
+        console.log(`[DEBUG] isVPNConnection(ip): \${isVPNConnection(ip)}`);
+        console.log(`[DEBUG] Final VPN Status: \${vpn}\n`);
+
         const deviceResult = await registerDevice(user.id, {
             fingerprint: fingerprint,
             browser: `${browserInfo.name || 'Unknown'} ${browserInfo.version || ''}`,
