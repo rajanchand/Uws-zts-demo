@@ -1,36 +1,57 @@
-// routes/mappingRoutes.js
-// user management, department management, device registration
-// only accessible by SuperAdmin and Admin roles
-// includes: password policy, step-up re-authentication
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const path = require('path');
+const { supabase } = require('../db');
+const { logEvent } = require('../services/auditService');
+const { getPendingDevices, approveDevice, rejectDevice, getAllDevices } = require('../services/deviceService');
+const { validatePassword } = require('../middleware/passwordPolicy');
+const { requireReAuth } = require('../middleware/stepUpAuth');
+const { logSecurityEvent } = require('../services/monitorService');
 
-var express = require('express');
-var bcrypt = require('bcryptjs');
-var path = require('path');
-var { supabase } = require('../db');
-var { logEvent } = require('../services/auditService');
-var { getPendingDevices, approveDevice, rejectDevice, getAllDevices } = require('../services/deviceService');
-var { validatePassword } = require('../middleware/passwordPolicy');
-var { requireReAuth } = require('../middleware/stepUpAuth');
+const router = express.Router();
 
-var router = express.Router();
-var { logSecurityEvent } = require('../services/monitorService');
+// --- Middleware ---
 
-// --- pages ---
+/**
+ * Ensures the user is accessing from an approved device for sensitive admin actions.
+ */
+const requireApprovedDevice = async (req, res, next) => {
+    try {
+        const { data: currentDevice } = await supabase
+            .from('devices')
+            .select('approved')
+            .eq('user_id', req.session.userId)
+            .eq('fingerprint', req.session.deviceFingerprint)
+            .single();
 
-router.get('/mapping', function (req, res) {
+        if (!currentDevice || !currentDevice.approved) {
+            return res.json({ 
+                success: false, 
+                message: 'Access denied: Active Admin actions require an approved company device.' 
+            });
+        }
+        next();
+    } catch (err) {
+        return res.status(500).json({ success: false, message: 'Server error verifying device posture.' });
+    }
+};
+
+// --- Pages ---
+
+router.get('/mapping', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'views', 'mapping.html'));
 });
 
-router.get('/register-device', function (req, res) {
+router.get('/register-device', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'views', 'register-device.html'));
 });
 
-// --- user management API ---
+// --- User Management API ---
 
-// get all users
-router.get('/api/mapping/users', async function (req, res) {
+// Get all users
+router.get('/api/mapping/users', async (req, res) => {
     try {
-        var { data: users } = await supabase
+        const { data: users } = await supabase
             .from('users')
             .select('id, username, role, email, department, status, failed_attempts, created_at')
             .order('id', { ascending: true });
@@ -41,35 +62,23 @@ router.get('/api/mapping/users', async function (req, res) {
     }
 });
 
-// create new user
-router.post('/api/mapping/users/create', requireReAuth, async function (req, res) {
+// Create new user
+router.post('/api/mapping/users/create', requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
-        // DEVICE POSTURE ENFORCEMENT
-        var { data: currentDevice } = await supabase
-            .from('devices')
-            .select('approved')
-            .eq('user_id', req.session.userId)
-            .eq('fingerprint', req.session.deviceFingerprint)
-            .single();
-
-        if (!currentDevice || !currentDevice.approved) {
-            return res.json({ success: false, message: 'Access denied: Active Admin actions require an approved company device.' });
-        }
-
-        var { username, password, role, email, department } = req.body;
+        const { username, password, role, email, department } = req.body;
 
         if (!username || !password || !role) {
             return res.json({ success: false, message: 'Username, password, and role are required.' });
         }
 
-        // PASSWORD POLICY enforcement
-        var policy = validatePassword(password);
+        // Password Policy enforcement
+        const policy = validatePassword(password);
         if (!policy.valid) {
             return res.json({ success: false, message: policy.errors.join(' ') });
         }
 
-        // check if username already exists
-        var { data: existing } = await supabase
+        // Check availability
+        const { data: existing } = await supabase
             .from('users')
             .select('id')
             .eq('username', username)
@@ -79,50 +88,50 @@ router.post('/api/mapping/users/create', requireReAuth, async function (req, res
             return res.json({ success: false, message: 'Username already exists.' });
         }
 
-        var hash = bcrypt.hashSync(password, 10);
+        const hash = bcrypt.hashSync(password, 10);
 
-        var { error } = await supabase.from('users').insert({
-            username: username,
+        const { error } = await supabase.from('users').insert({
+            username,
             password_hash: hash,
-            role: role,
+            role,
             email: email || '',
             department: department || 'General',
             status: 'active'
         });
 
         if (error) {
-            return res.json({ success: false, message: 'Failed to create user: ' + error.message });
+            return res.json({ success: false, message: `Failed to create user: ${error.message}` });
         }
 
-        await logEvent(req.session.userId, 'USER_CREATED', 'Created user: ' + username + ' (' + role + ')', req.ip);
+        await logEvent(req.session.userId, 'USER_CREATED', `Created user: ${username} (${role})`, req.ip);
         await logSecurityEvent({
             event_type: 'USER_CREATED',
             user_id: req.session.userId,
             username: req.session.username,
             ip: req.ip,
-            details: { new_user: username, role: role, department: department || 'General' }
+            details: { new_user: username, role, department: department || 'General' }
         });
+
         res.json({ success: true, message: 'User created successfully.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error.' });
     }
 });
 
-// approve device
-router.post('/api/mapping/devices/approve', requireReAuth, async function (req, res) {
+// Approve device
+router.post('/api/mapping/devices/approve', requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
-        var { deviceId, trustLevel } = req.body;
+        const { deviceId, trustLevel } = req.body;
         if (!deviceId) return res.json({ success: false });
 
-        var adminId = req.session.userId;
-        var approvedLevel = trustLevel || 'Managed';
+        const adminId = req.session.userId;
+        const approvedLevel = trustLevel || 'Managed';
         await approveDevice(deviceId, adminId, approvedLevel);
 
-        var { data: target } = await supabase.from('devices').select('user_id, fingerprint').eq('id', deviceId).single();
-        var tId = target ? target.user_id : 'unknown';
+        const { data: target } = await supabase.from('devices').select('user_id').eq('id', deviceId).single();
+        const tId = target ? target.user_id : 'unknown';
 
-        await logEvent(adminId, 'DEVICE_APPROVED', 'Approved device ' + deviceId + ' (' + approvedLevel + ') for user ' + tId, req.ip);
-        
+        await logEvent(adminId, 'DEVICE_APPROVED', `Approved device ${deviceId} (${approvedLevel}) for user ${tId}`, req.ip);
         await logSecurityEvent({
             event_type: 'DEVICE_APPROVED',
             user_id: adminId,
@@ -131,63 +140,37 @@ router.post('/api/mapping/devices/approve', requireReAuth, async function (req, 
             details: { action: 'device_approved', target_device: deviceId, target_user: tId, trust_level: approvedLevel }
         });
 
-        res.json({ success: true, message: 'Device approved as ' + approvedLevel });
+        res.json({ success: true, message: `Device approved as ${approvedLevel}` });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error.' });
     }
 });
 
-// delete user
-router.post('/api/mapping/users/delete', requireReAuth, async function (req, res) {
+// Delete user
+router.post('/api/mapping/users/delete', requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
-        // DEVICE POSTURE ENFORCEMENT
-        var { data: currentDevice } = await supabase
-            .from('devices')
-            .select('approved')
-            .eq('user_id', req.session.userId)
-            .eq('fingerprint', req.session.deviceFingerprint)
-            .single();
+        const userId = req.body.userId;
 
-        if (!currentDevice || !currentDevice.approved) {
-            return res.json({ success: false, message: 'Access denied: Active Admin actions require an approved company device.' });
-        }
-
-        var userId = req.body.userId;
-
-        // cannot delete yourself
         if (userId === req.session.userId) {
             return res.json({ success: false, message: 'You cannot delete your own account.' });
         }
 
-        var { data: user } = await supabase.from('users').select('username').eq('id', userId).single();
+        const { data: user } = await supabase.from('users').select('username').eq('id', userId).single();
+        if (!user) return res.json({ success: false, message: 'User not found.' });
 
-        if (!user) {
-            return res.json({ success: false, message: 'User not found.' });
-        }
-
-        // clear approved_by references on other users' devices (foreign key)
+        // Cleanup dependencies
         await supabase.from('devices').update({ approved_by: null }).eq('approved_by', userId);
-
-        // clear ip_rules created_by references (foreign key)
         await supabase.from('ip_rules').update({ created_by: null }).eq('created_by', userId);
-
-        // delete related records in proper order
         await supabase.from('devices').delete().eq('user_id', userId);
         await supabase.from('otp_store').delete().eq('user_id', userId);
         await supabase.from('risk_logs').delete().eq('user_id', userId);
         await supabase.from('sessions_log').delete().eq('user_id', userId);
-
-        // keep audit log but remove user_id reference (data stays in database)
         await supabase.from('audit_log').update({ user_id: null }).eq('user_id', userId);
 
-        // now safe to delete the user
-        var { error } = await supabase.from('users').delete().eq('id', userId);
+        const { error } = await supabase.from('users').delete().eq('id', userId);
+        if (error) return res.json({ success: false, message: `Delete failed: ${error.message}` });
 
-        if (error) {
-            return res.json({ success: false, message: 'Delete failed: ' + error.message });
-        }
-
-        await logEvent(req.session.userId, 'USER_DELETED', 'Deleted user: ' + user.username, req.ip);
+        await logEvent(req.session.userId, 'USER_DELETED', `Deleted user: ${user.username}`, req.ip);
         await logSecurityEvent({
             event_type: 'USER_DELETED',
             user_id: req.session.userId,
@@ -195,36 +178,24 @@ router.post('/api/mapping/users/delete', requireReAuth, async function (req, res
             ip: req.ip,
             details: { deleted_user: user.username, deleted_user_id: userId }
         });
-        res.json({ success: true, message: 'User "' + user.username + '" deleted. Audit records preserved.' });
+
+        res.json({ success: true, message: `User "${user.username}" deleted.` });
     } catch (err) {
-        console.error('Delete user error:', err);
-        res.status(500).json({ success: false, message: 'Server error: ' + err.message });
+        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
     }
 });
 
-// change user role
-router.post('/api/mapping/users/change-role', requireReAuth, async function (req, res) {
+// Change user role
+router.post('/api/mapping/users/change-role', requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
-        // DEVICE POSTURE ENFORCEMENT
-        var { data: currentDevice } = await supabase
-            .from('devices')
-            .select('approved')
-            .eq('user_id', req.session.userId)
-            .eq('fingerprint', req.session.deviceFingerprint)
-            .single();
+        const { userId, newRole } = req.body;
 
-        if (!currentDevice || !currentDevice.approved) {
-            return res.json({ success: false, message: 'Access denied: Active Admin actions require an approved company device.' });
-        }
-
-        var { userId, newRole } = req.body;
-
-        var { data: user } = await supabase.from('users').select('username, role').eq('id', userId).single();
+        const { data: user } = await supabase.from('users').select('username, role').eq('id', userId).single();
         if (!user) return res.json({ success: false, message: 'User not found.' });
 
         await supabase.from('users').update({ role: newRole }).eq('id', userId);
 
-        await logEvent(req.session.userId, 'ROLE_CHANGED', user.username + ': ' + user.role + ' -> ' + newRole, req.ip);
+        await logEvent(req.session.userId, 'ROLE_CHANGED', `${user.username}: ${user.role} -> ${newRole}`, req.ip);
         await logSecurityEvent({
             event_type: 'ROLE_CHANGED',
             user_id: req.session.userId,
@@ -232,86 +203,61 @@ router.post('/api/mapping/users/change-role', requireReAuth, async function (req
             ip: req.ip,
             details: { target_user: user.username, target_user_id: userId, old_role: user.role, new_role: newRole }
         });
+
         res.json({ success: true, message: 'Role updated.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error.' });
     }
 });
 
-// edit user details (username, role, email, department)
-router.post('/api/mapping/users/edit', async function (req, res) {
+// Edit user details
+router.post('/api/mapping/users/edit', requireApprovedDevice, async (req, res) => {
     try {
-        // DEVICE POSTURE ENFORCEMENT
-        var { data: currentDevice } = await supabase
-            .from('devices')
-            .select('approved')
-            .eq('user_id', req.session.userId)
-            .eq('fingerprint', req.session.deviceFingerprint)
-            .single();
+        const { userId, username, role, email, department } = req.body;
 
-        if (!currentDevice || !currentDevice.approved) {
-            return res.json({ success: false, message: 'Access denied: Active Admin actions require an approved company device.' });
-        }
-
-        var { userId, username, role, email, department } = req.body;
-
-        var { data: user } = await supabase.from('users').select('username').eq('id', userId).single();
+        const { data: user } = await supabase.from('users').select('username').eq('id', userId).single();
         if (!user) return res.json({ success: false, message: 'User not found.' });
 
-        // check if new username is already taken by another user
         if (username && username !== user.username) {
-            var { data: existing } = await supabase.from('users').select('id').eq('username', username).single();
+            const { data: existing } = await supabase.from('users').select('id').eq('username', username).single();
             if (existing && existing.id !== userId) {
-                return res.json({ success: false, message: 'Username "' + username + '" is already taken.' });
+                return res.json({ success: false, message: `Username "${username}" is already taken.` });
             }
         }
 
-        var updates = {};
+        const updates = {};
         if (username) updates.username = username;
         if (role) updates.role = role;
         if (email !== undefined) updates.email = email;
         if (department) updates.department = department;
 
-        var { error } = await supabase.from('users').update(updates).eq('id', userId);
-        if (error) return res.json({ success: false, message: 'Update failed: ' + error.message });
+        const { error } = await supabase.from('users').update(updates).eq('id', userId);
+        if (error) return res.json({ success: false, message: `Update failed: ${error.message}` });
 
-        var changes = [];
-        if (username && username !== user.username) changes.push('username: ' + user.username + ' -> ' + username);
-        if (role) changes.push('role: ' + role);
-        if (email !== undefined) changes.push('email: ' + email);
-        if (department) changes.push('dept: ' + department);
+        const changes = [];
+        if (username && username !== user.username) changes.push(`username: ${user.username} -> ${username}`);
+        if (role) changes.push(`role: ${role}`);
+        if (email !== undefined) changes.push(`email: ${email}`);
+        if (department) changes.push(`dept: ${department}`);
 
-        await logEvent(req.session.userId, 'USER_EDITED', 'Edited user ID ' + userId + ': ' + changes.join(', '), req.ip);
+        await logEvent(req.session.userId, 'USER_EDITED', `Edited user ID ${userId}: ${changes.join(', ')}`, req.ip);
         res.json({ success: true, message: 'User updated successfully.' });
     } catch (err) {
-        console.error('Edit user error:', err);
         res.status(500).json({ success: false, message: 'Server error.' });
     }
 });
 
-// suspend user
-router.post('/api/mapping/users/suspend', async function (req, res) {
+// Suspend user
+router.post('/api/mapping/users/suspend', requireApprovedDevice, async (req, res) => {
     try {
-        // DEVICE POSTURE ENFORCEMENT
-        var { data: currentDevice } = await supabase
-            .from('devices')
-            .select('approved')
-            .eq('user_id', req.session.userId)
-            .eq('fingerprint', req.session.deviceFingerprint)
-            .single();
+        const { userId } = req.body;
 
-        if (!currentDevice || !currentDevice.approved) {
-            return res.json({ success: false, message: 'Access denied: Active Admin actions require an approved company device.' });
-        }
-
-        var userId = req.body.userId;
-
-        var { data: user } = await supabase.from('users').select('username').eq('id', userId).single();
+        const { data: user } = await supabase.from('users').select('username').eq('id', userId).single();
         if (!user) return res.json({ success: false, message: 'User not found.' });
 
         await supabase.from('users').update({ status: 'suspended' }).eq('id', userId);
 
-        await logEvent(req.session.userId, 'USER_SUSPENDED', 'Suspended user: ' + user.username, req.ip);
+        await logEvent(req.session.userId, 'USER_SUSPENDED', `Suspended user: ${user.username}`, req.ip);
         await logSecurityEvent({
             event_type: 'USER_BLOCKED',
             user_id: req.session.userId,
@@ -319,35 +265,24 @@ router.post('/api/mapping/users/suspend', async function (req, res) {
             ip: req.ip,
             details: { target_user: user.username, action: 'suspended' }
         });
+
         res.json({ success: true, message: 'User suspended.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error.' });
     }
 });
 
-// block user
-router.post('/api/mapping/users/block', async function (req, res) {
+// Block user
+router.post('/api/mapping/users/block', requireApprovedDevice, async (req, res) => {
     try {
-        // DEVICE POSTURE ENFORCEMENT
-        var { data: currentDevice } = await supabase
-            .from('devices')
-            .select('approved')
-            .eq('user_id', req.session.userId)
-            .eq('fingerprint', req.session.deviceFingerprint)
-            .single();
+        const { userId } = req.body;
 
-        if (!currentDevice || !currentDevice.approved) {
-            return res.json({ success: false, message: 'Access denied: Active Admin actions require an approved company device.' });
-        }
-
-        var userId = req.body.userId;
-
-        var { data: user } = await supabase.from('users').select('username').eq('id', userId).single();
+        const { data: user } = await supabase.from('users').select('username').eq('id', userId).single();
         if (!user) return res.json({ success: false, message: 'User not found.' });
 
         await supabase.from('users').update({ status: 'blocked' }).eq('id', userId);
 
-        await logEvent(req.session.userId, 'USER_BLOCKED', 'Blocked user: ' + user.username, req.ip);
+        await logEvent(req.session.userId, 'USER_BLOCKED', `Blocked user: ${user.username}`, req.ip);
         await logSecurityEvent({
             event_type: 'USER_BLOCKED',
             user_id: req.session.userId,
@@ -355,35 +290,24 @@ router.post('/api/mapping/users/block', async function (req, res) {
             ip: req.ip,
             details: { target_user: user.username, action: 'blocked' }
         });
+
         res.json({ success: true, message: 'User blocked.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error.' });
     }
 });
 
-// activate user (unblock / unsuspend)
-router.post('/api/mapping/users/activate', async function (req, res) {
+// Activate user
+router.post('/api/mapping/users/activate', requireApprovedDevice, async (req, res) => {
     try {
-        // DEVICE POSTURE ENFORCEMENT
-        var { data: currentDevice } = await supabase
-            .from('devices')
-            .select('approved')
-            .eq('user_id', req.session.userId)
-            .eq('fingerprint', req.session.deviceFingerprint)
-            .single();
+        const { userId } = req.body;
 
-        if (!currentDevice || !currentDevice.approved) {
-            return res.json({ success: false, message: 'Access denied: Active Admin actions require an approved company device.' });
-        }
-
-        var userId = req.body.userId;
-
-        var { data: user } = await supabase.from('users').select('username').eq('id', userId).single();
+        const { data: user } = await supabase.from('users').select('username').eq('id', userId).single();
         if (!user) return res.json({ success: false, message: 'User not found.' });
 
         await supabase.from('users').update({ status: 'active', failed_attempts: 0 }).eq('id', userId);
 
-        await logEvent(req.session.userId, 'USER_ACTIVATED', 'Activated user: ' + user.username, req.ip);
+        await logEvent(req.session.userId, 'USER_ACTIVATED', `Activated user: ${user.username}`, req.ip);
         await logSecurityEvent({
             event_type: 'USER_UNBLOCKED',
             user_id: req.session.userId,
@@ -391,42 +315,40 @@ router.post('/api/mapping/users/activate', async function (req, res) {
             ip: req.ip,
             details: { target_user: user.username }
         });
+
         res.json({ success: true, message: 'User activated.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error.' });
     }
 });
 
-// --- department management ---
+// --- Department Management ---
 
-router.get('/api/mapping/departments', async function (req, res) {
+router.get('/api/mapping/departments', async (req, res) => {
     try {
-        var { data: depts } = await supabase.from('departments').select('*').order('name');
+        const { data: depts } = await supabase.from('departments').select('*').order('name');
         if (!depts) return res.json([]);
 
-        // fetch all users for lookups
-        var { data: allUsers } = await supabase.from('users').select('id, username, department');
+        const { data: allUsers } = await supabase.from('users').select('id, username, department');
 
-        var userMap = {};
-        var deptUserCounts = {};
-        (allUsers || []).forEach(function (u) {
+        const userMap = {};
+        const deptUserCounts = {};
+        (allUsers || []).forEach(u => {
             userMap[u.id] = u.username;
-            var dName = (u.department || '').toLowerCase();
+            const dName = (u.department || '').toLowerCase();
             deptUserCounts[dName] = (deptUserCounts[dName] || 0) + 1;
         });
 
-        var enriched = depts.map(function (d) {
-            return {
-                id: d.id,
-                name: d.name,
-                created_at: d.created_at,
-                created_by: d.created_by,
-                created_by_name: d.created_by ? (userMap[d.created_by] || 'Unknown') : '-',
-                head_user_id: d.head_user_id,
-                head_name: d.head_user_id ? (userMap[d.head_user_id] || 'Unknown') : '-',
-                total_users: deptUserCounts[d.name.toLowerCase()] || 0
-            };
-        });
+        const enriched = depts.map(d => ({
+            id: d.id,
+            name: d.name,
+            created_at: d.created_at,
+            created_by: d.created_by,
+            created_by_name: d.created_by ? (userMap[d.created_by] || 'Unknown') : '-',
+            head_user_id: d.head_user_id,
+            head_name: d.head_user_id ? (userMap[d.head_user_id] || 'Unknown') : '-',
+            total_users: deptUserCounts[d.name.toLowerCase()] || 0
+        }));
 
         res.json(enriched);
     } catch (err) {
@@ -435,136 +357,86 @@ router.get('/api/mapping/departments', async function (req, res) {
     }
 });
 
-router.post('/api/mapping/departments/create', async function (req, res) {
+router.post('/api/mapping/departments/create', requireApprovedDevice, async (req, res) => {
     try {
-        // DEVICE POSTURE ENFORCEMENT
-        var { data: currentDevice } = await supabase
-            .from('devices')
-            .select('approved')
-            .eq('user_id', req.session.userId)
-            .eq('fingerprint', req.session.deviceFingerprint)
-            .single();
-
-        if (!currentDevice || !currentDevice.approved) {
-            return res.json({ success: false, message: 'Access denied: Active Admin actions require an approved company device.' });
-        }
-
-        var name = (req.body.name || '').trim();
+        const name = (req.body.name || '').trim();
         if (!name) return res.json({ success: false, message: 'Department name is required.' });
 
-        var insertData = { name: name, created_by: req.session.userId };
+        const insertData = { name, created_by: req.session.userId };
         if (req.body.head_user_id) {
             insertData.head_user_id = parseInt(req.body.head_user_id);
         }
 
-        var { error } = await supabase.from('departments').insert(insertData);
-        if (error) return res.json({ success: false, message: 'Department already exists or error: ' + error.message });
+        const { error } = await supabase.from('departments').insert(insertData);
+        if (error) return res.json({ success: false, message: `Department already exists or error: ${error.message}` });
 
-        await logEvent(req.session.userId, 'DEPT_CREATED', 'Created department: ' + name, req.ip);
+        await logEvent(req.session.userId, 'DEPT_CREATED', `Created department: ${name}`, req.ip);
         res.json({ success: true, message: 'Department created.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error.' });
     }
 });
 
-router.post('/api/mapping/departments/delete', async function (req, res) {
+router.post('/api/mapping/departments/delete', requireApprovedDevice, async (req, res) => {
     try {
-        // DEVICE POSTURE ENFORCEMENT
-        var { data: currentDevice } = await supabase
-            .from('devices')
-            .select('approved')
-            .eq('user_id', req.session.userId)
-            .eq('fingerprint', req.session.deviceFingerprint)
-            .single();
+        const deptId = req.body.departmentId;
 
-        if (!currentDevice || !currentDevice.approved) {
-            return res.json({ success: false, message: 'Access denied: Active Admin actions require an approved company device.' });
-        }
-
-        var deptId = req.body.departmentId;
-
-        var { data: dept } = await supabase.from('departments').select('name').eq('id', deptId).single();
+        const { data: dept } = await supabase.from('departments').select('name').eq('id', deptId).single();
         if (!dept) return res.json({ success: false, message: 'Department not found.' });
 
         await supabase.from('departments').delete().eq('id', deptId);
 
-        await logEvent(req.session.userId, 'DEPT_DELETED', 'Deleted department: ' + dept.name, req.ip);
+        await logEvent(req.session.userId, 'DEPT_DELETED', `Deleted department: ${dept.name}`, req.ip);
         res.json({ success: true, message: 'Department deleted.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error.' });
     }
 });
 
-router.post('/api/mapping/departments/update-head', async function (req, res) {
+router.post('/api/mapping/departments/update-head', requireApprovedDevice, async (req, res) => {
     try {
-        // DEVICE POSTURE ENFORCEMENT
-        var { data: currentDevice } = await supabase
-            .from('devices')
-            .select('approved')
-            .eq('user_id', req.session.userId)
-            .eq('fingerprint', req.session.deviceFingerprint)
-            .single();
+        const deptId = req.body.departmentId;
+        const headUserId = req.body.head_user_id ? parseInt(req.body.head_user_id) : null;
 
-        if (!currentDevice || !currentDevice.approved) {
-            return res.json({ success: false, message: 'Access denied: Active Admin actions require an approved company device.' });
-        }
-
-        var deptId = req.body.departmentId;
-        var headUserId = req.body.head_user_id ? parseInt(req.body.head_user_id) : null;
-
-        var { data: dept } = await supabase.from('departments').select('name').eq('id', deptId).single();
+        const { data: dept } = await supabase.from('departments').select('name').eq('id', deptId).single();
         if (!dept) return res.json({ success: false, message: 'Department not found.' });
 
-        var { error } = await supabase.from('departments').update({ head_user_id: headUserId }).eq('id', deptId);
-        if (error) return res.json({ success: false, message: 'Update failed: ' + error.message });
+        const { error } = await supabase.from('departments').update({ head_user_id: headUserId }).eq('id', deptId);
+        if (error) return res.json({ success: false, message: `Update failed: ${error.message}` });
 
-        await logEvent(req.session.userId, 'DEPT_HEAD_CHANGED', 'Changed head for ' + dept.name + ' to user ID ' + headUserId, req.ip);
+        await logEvent(req.session.userId, 'DEPT_HEAD_CHANGED', `Changed head for ${dept.name} to user ID ${headUserId}`, req.ip);
         res.json({ success: true, message: 'Department head updated.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error.' });
     }
 });
 
-// --- device registration / approval ---
+// --- Device Registration / Approval ---
 
-router.get('/api/mapping/devices/pending', async function (req, res) {
+router.get('/api/mapping/devices/pending', async (req, res) => {
     try {
-        var devices = await getPendingDevices();
+        const devices = await getPendingDevices();
         res.json(devices);
     } catch (err) {
         res.json([]);
     }
 });
 
-router.get('/api/mapping/devices/all', async function (req, res) {
+router.get('/api/mapping/devices/all', async (req, res) => {
     try {
-        var devices = await getAllDevices();
+        const devices = await getAllDevices();
         res.json(devices);
     } catch (err) {
         res.json([]);
     }
 });
 
-
-
-router.post('/api/mapping/devices/reject', async function (req, res) {
+router.post('/api/mapping/devices/reject', requireApprovedDevice, async (req, res) => {
     try {
-        // DEVICE POSTURE ENFORCEMENT
-        var { data: currentDevice } = await supabase
-            .from('devices')
-            .select('approved')
-            .eq('user_id', req.session.userId)
-            .eq('fingerprint', req.session.deviceFingerprint)
-            .single();
-
-        if (!currentDevice || !currentDevice.approved) {
-            return res.json({ success: false, message: 'Access denied: Active Admin actions require an approved company device.' });
-        }
-
-        var deviceId = req.body.deviceId;
+        const deviceId = req.body.deviceId;
         await rejectDevice(deviceId);
 
-        await logEvent(req.session.userId, 'DEVICE_REJECTED', 'Rejected device ID: ' + deviceId, req.ip);
+        await logEvent(req.session.userId, 'DEVICE_REJECTED', `Rejected device ID: ${deviceId}`, req.ip);
         res.json({ success: true, message: 'Device rejected.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error.' });
