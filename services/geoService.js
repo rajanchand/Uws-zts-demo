@@ -76,4 +76,18 @@ function checkImpossibleTravel(currentCountry, lastCountry, timeDiffMinutes) {
     return timeDiffMinutes < 120;
 }
 
-module.exports = { getCountryFromIP, getGeoFromIP, isVPNConnection, checkImpossibleTravel };
+function isHostingISP(isp) {
+    if (!isp) return false;
+    // Known hosting provider ISPs that might handle VPN traffic
+    const hostingISPs = [
+        'datacamp', 'digitalocean', 'ovh', 'hostinger', 'mullvad', 
+        'ovh sas', 'relyia', 'm247', 'packet', 'vultr', 'linode', 'hetzner'
+    ];
+    const lowerIsp = isp.toLowerCase();
+    for (const h of hostingISPs) {
+        if (lowerIsp.includes(h)) return true;
+    }
+    return false;
+}
+
+module.exports = { getCountryFromIP, getGeoFromIP, isVPNConnection, checkImpossibleTravel, isHostingISP };
