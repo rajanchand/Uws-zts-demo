@@ -1,11 +1,23 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const { supabase } = require('../db');
-const { getRiskHistory } = require('../services/riskEngine');
+const { getRiskHistory, getAllRiskHistory } = require('../services/riskEngine');
 const { getUserAuditLog } = require('../services/auditService');
 const { getDeviceHealth } = require('../services/deviceService');
 
 const router = express.Router();
+
+// Helper: check if current user's role has a specific permission
+function hasPermission(role, permKey) {
+    if (role === 'SuperAdmin') return true;
+    try {
+        const perms = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'role_permissions.json'), 'utf8'));
+        return !!(perms[role] && perms[role][permKey]);
+    } catch (e) {
+        return false;
+    }
+}
 
 const dashboardContent = {
     SuperAdmin: {
@@ -152,7 +164,13 @@ router.get('/api/risk-data', async (req, res) => {
 });
 
 router.get('/api/admin-stats', async (req, res) => {
-    if (req.session.role !== 'SuperAdmin' && req.session.role !== 'IT') {
+    // Check if user has any admin-level permission from the RBAC matrix
+    const role = req.session.role;
+    const hasAdminAccess = hasPermission(role, 'manage_users') || 
+                           hasPermission(role, 'view_monitoring') ||
+                           hasPermission(role, 'analyze_risk');
+
+    if (!hasAdminAccess) {
         return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -237,6 +255,195 @@ router.get('/api/admin-stats', async (req, res) => {
     } catch (err) {
         console.error('Admin stats error:', err);
         res.status(500).json({ error: 'Failed to load stats' });
+    }
+});
+
+// ============================================================
+// SUPERADMIN: View other users' audit log, risk, login history, device health
+// ============================================================
+
+// SuperAdmin: View any user's audit log
+router.get('/api/admin/user/:userId/audit-log', async (req, res) => {
+    if (req.session.role !== 'SuperAdmin') {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    try {
+        const targetId = parseInt(req.params.userId);
+        if (isNaN(targetId)) return res.status(400).json({ error: 'Invalid user ID' });
+
+        // Verify target user exists
+        const { data: targetUser } = await supabase
+            .from('users')
+            .select('id, username, role, department')
+            .eq('id', targetId)
+            .single();
+
+        if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+        const logs = await getUserAuditLog(targetId, parseInt(req.query.limit) || 50);
+
+        res.json({
+            user: {
+                id: targetUser.id,
+                username: targetUser.username,
+                role: targetUser.role,
+                department: targetUser.department
+            },
+            logs: logs
+        });
+    } catch (err) {
+        console.error('Admin audit log error:', err);
+        res.status(500).json({ error: 'Failed to load audit log' });
+    }
+});
+
+// SuperAdmin: View any user's risk score, factors & history
+router.get('/api/admin/user/:userId/risk-data', async (req, res) => {
+    if (req.session.role !== 'SuperAdmin') {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    try {
+        const targetId = parseInt(req.params.userId);
+        if (isNaN(targetId)) return res.status(400).json({ error: 'Invalid user ID' });
+
+        const { data: targetUser } = await supabase
+            .from('users')
+            .select('id, username, role, department, status')
+            .eq('id', targetId)
+            .single();
+
+        if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+        // Get full risk history for this user
+        const history = await getRiskHistory(targetId, parseInt(req.query.limit) || 30);
+
+        // Get latest risk entry for current score/factors
+        let currentScore = 0;
+        let currentLevel = 'Low';
+        let currentFactors = [];
+
+        if (history && history.length > 0) {
+            const latest = history[0];
+            currentScore = latest.score || 0;
+            currentLevel = latest.level || 'Low';
+            try {
+                currentFactors = typeof latest.factors_json === 'string'
+                    ? JSON.parse(latest.factors_json)
+                    : (latest.factors_json || []);
+            } catch (e) {
+                currentFactors = [];
+            }
+        }
+
+        res.json({
+            user: {
+                id: targetUser.id,
+                username: targetUser.username,
+                role: targetUser.role,
+                department: targetUser.department,
+                status: targetUser.status
+            },
+            currentScore: currentScore,
+            currentLevel: currentLevel,
+            factors: currentFactors,
+            history: history
+        });
+    } catch (err) {
+        console.error('Admin risk data error:', err);
+        res.status(500).json({ error: 'Failed to load risk data' });
+    }
+});
+
+// SuperAdmin: View any user's login/session history
+router.get('/api/admin/user/:userId/login-history', async (req, res) => {
+    if (req.session.role !== 'SuperAdmin') {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    try {
+        const targetId = parseInt(req.params.userId);
+        if (isNaN(targetId)) return res.status(400).json({ error: 'Invalid user ID' });
+
+        const { data: targetUser } = await supabase
+            .from('users')
+            .select('id, username, role, department')
+            .eq('id', targetId)
+            .single();
+
+        if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+        const limit = parseInt(req.query.limit) || 50;
+
+        const { data: sessions } = await supabase
+            .from('sessions_log')
+            .select('*')
+            .eq('user_id', targetId)
+            .order('login_at', { ascending: false })
+            .limit(limit);
+
+        // Compute summary stats
+        const allSessions = sessions || [];
+        const countries = [...new Set(allSessions.map(s => s.country).filter(Boolean))];
+        const browsers = [...new Set(allSessions.map(s => s.browser).filter(Boolean))];
+        const avgRisk = allSessions.length > 0
+            ? Math.round(allSessions.reduce((sum, s) => sum + (s.risk_score || 0), 0) / allSessions.length)
+            : 0;
+
+        res.json({
+            user: {
+                id: targetUser.id,
+                username: targetUser.username,
+                role: targetUser.role,
+                department: targetUser.department
+            },
+            summary: {
+                totalSessions: allSessions.length,
+                uniqueCountries: countries,
+                uniqueBrowsers: browsers,
+                averageRiskScore: avgRisk
+            },
+            sessions: allSessions
+        });
+    } catch (err) {
+        console.error('Admin login history error:', err);
+        res.status(500).json({ error: 'Failed to load login history' });
+    }
+});
+
+// SuperAdmin: View any user's device health & registered devices
+router.get('/api/admin/user/:userId/device-health', async (req, res) => {
+    if (req.session.role !== 'SuperAdmin') {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    try {
+        const targetId = parseInt(req.params.userId);
+        if (isNaN(targetId)) return res.status(400).json({ error: 'Invalid user ID' });
+
+        const { data: targetUser } = await supabase
+            .from('users')
+            .select('id, username, role, department')
+            .eq('id', targetId)
+            .single();
+
+        if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+        const health = await getDeviceHealth(targetId);
+
+        res.json({
+            user: {
+                id: targetUser.id,
+                username: targetUser.username,
+                role: targetUser.role,
+                department: targetUser.department
+            },
+            deviceHealth: health
+        });
+    } catch (err) {
+        console.error('Admin device health error:', err);
+        res.status(500).json({ error: 'Failed to load device health' });
     }
 });
 

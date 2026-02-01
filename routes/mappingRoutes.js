@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
 const path = require('path');
 const { supabase } = require('../db');
 const { logEvent } = require('../services/auditService');
@@ -9,6 +10,17 @@ const { requireReAuth } = require('../middleware/stepUpAuth');
 const { logSecurityEvent } = require('../services/monitorService');
 
 const { requireRole, requirePermission } = require('../middleware/rbac');
+
+// Helper: check if current user's role has a specific permission from role_permissions.json
+function hasPermission(role, permKey) {
+    if (role === 'SuperAdmin') return true;
+    try {
+        const perms = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'role_permissions.json'), 'utf8'));
+        return !!(perms[role] && perms[role][permKey]);
+    } catch (e) {
+        return false;
+    }
+}
 
 const router = express.Router();
 
@@ -152,11 +164,9 @@ router.post('/api/mapping/devices/approve', requirePermission('approve_devices')
 router.post('/api/mapping/users/delete', requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         const userId = req.body.userId;
-        const role = req.session.role;
-
-        // ONLY SuperAdmin can delete users
-        if (role !== 'SuperAdmin') {
-            return res.status(403).json({ success: false, message: 'Access denied: Only SuperAdmins can delete users.' });
+        // Check delete_users permission from RBAC matrix
+        if (!hasPermission(req.session.role, 'delete_users')) {
+            return res.status(403).json({ success: false, message: 'Access denied: You do not have permission to delete users.' });
         }
 
         if (userId === req.session.userId) {
@@ -219,7 +229,7 @@ router.post('/api/mapping/users/change-role', requireReAuth, requireApprovedDevi
 });
 
 // Edit user details
-router.post('/api/mapping/users/edit', requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/users/edit', requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         const { userId, username, role, email, department } = req.body;
 
@@ -256,7 +266,7 @@ router.post('/api/mapping/users/edit', requireApprovedDevice, async (req, res) =
 });
 
 // Suspend user
-router.post('/api/mapping/users/suspend', requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/users/suspend', requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         const { userId } = req.body;
 
@@ -281,7 +291,7 @@ router.post('/api/mapping/users/suspend', requireApprovedDevice, async (req, res
 });
 
 // Block user
-router.post('/api/mapping/users/block', requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/users/block', requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         const { userId } = req.body;
 
@@ -306,7 +316,7 @@ router.post('/api/mapping/users/block', requireApprovedDevice, async (req, res) 
 });
 
 // Activate user
-router.post('/api/mapping/users/activate', requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/users/activate', requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         const { userId } = req.body;
 
@@ -367,11 +377,7 @@ router.get('/api/mapping/departments', async (req, res) => {
 
 router.post('/api/mapping/departments/create', requirePermission('manage_depts'), requireApprovedDevice, async (req, res) => {
     try {
-        const role = req.session.role;
-        // ONLY SuperAdmin can create departments
-        if (role !== 'SuperAdmin') {
-            return res.status(403).json({ success: false, message: 'Access denied: Only SuperAdmins can create departments.' });
-        }
+        // Permission already checked by requirePermission('manage_depts') middleware
 
         const name = (req.body.name || '').trim();
         if (!name) return res.json({ success: false, message: 'Department name is required.' });
@@ -391,13 +397,9 @@ router.post('/api/mapping/departments/create', requirePermission('manage_depts')
     }
 });
 
-router.post('/api/mapping/departments/delete', requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/departments/delete', requirePermission('manage_depts'), requireApprovedDevice, async (req, res) => {
     try {
-        const role = req.session.role;
-        // ONLY SuperAdmin can delete departments
-        if (role !== 'SuperAdmin') {
-            return res.status(403).json({ success: false, message: 'Access denied: Only SuperAdmins can delete departments.' });
-        }
+        // Permission checked by requirePermission('manage_depts') middleware
 
         const deptId = req.body.departmentId;
 
@@ -442,7 +444,7 @@ router.get('/api/mapping/devices/pending', requirePermission('approve_devices'),
     }
 });
 
-router.get('/api/mapping/devices/all', async (req, res) => {
+router.get('/api/mapping/devices/all', requirePermission('approve_devices'), async (req, res) => {
     try {
         const devices = await getAllDevices();
         res.json(devices);

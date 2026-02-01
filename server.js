@@ -96,7 +96,7 @@ app.get('/mapping/user-access', (req, res) => {
 app.use('/', rbacRoutes);
 app.use('/', requirePermission('manage_users'), mappingRoutes);
 app.use('/', requirePermission('view_monitoring'), monitoringRoutes);
-app.use('/', requireRole('SuperAdmin'), networkRoutes);
+app.use('/', requirePermission('manage_network'), networkRoutes);
 app.use('/', requirePermission('view_posture'), securityPostureRoutes);
 
 app.get('/', (req, res) => res.redirect('/dashboard'));

@@ -45,7 +45,7 @@
   },
   "CustomerSupport": {
     "manage_users": true,
-    "delete_users": true,
+    "delete_users": false,
     "reset_passwords": true,
     "approve_devices": false,
     "manage_depts": false,
