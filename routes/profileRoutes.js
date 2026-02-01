@@ -192,7 +192,7 @@ router.post('/api/profile/:userId/update', async function (req, res) {
 router.post('/api/profile/:userId/change-password', async function (req, res) {
     try {
         var role = req.session.role;
-        if (role !== 'SuperAdmin') {
+        if (role !== 'SuperAdmin' && role !== 'HR') {
             return res.status(403).json({ success: false, message: 'Access denied' });
         }
 

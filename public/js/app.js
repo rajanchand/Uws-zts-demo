@@ -115,18 +115,21 @@ function buildNavbar(role, activePage, username) {
     html += '</div>';
     html += '</div>';
 
-    // Mapping dropdown (SuperAdmin only)
-    if (role === 'SuperAdmin') {
+    // Mapping dropdown (SuperAdmin and HR)
+    if (role === 'SuperAdmin' || role === 'HR') {
         var mappingActive = (activePage === 'mapping' || activePage === 'register-device' || activePage === 'live-monitoring') ? ' active' : '';
         html += '<div class="nav-item' + mappingActive + '">';
         html += '<button class="nav-link' + mappingActive + '" onclick="toggleDropdown(this)">Mapping <span class="arrow">▾</span></button>';
         html += '<div class="dropdown-menu">';
         html += '<a href="/mapping"' + (activePage === 'mapping' ? ' class="active"' : '') + '>User Management</a>';
+        html += '<a href="/mapping/user-access"' + (activePage === 'user-access' ? ' class="active"' : '') + '>User Access</a>';
         html += '<a href="/register-device"' + (activePage === 'register-device' ? ' class="active"' : '') + '>Register Device</a>';
         html += '</div>';
         html += '</div>';
+    }
 
-        // Live Monitoring - separate nav item for SuperAdmin
+    // Live Monitoring - separate nav item for SuperAdmin and IT
+    if (role === 'SuperAdmin' || role === 'IT') {
         var monActive = (activePage === 'live-monitoring') ? ' active' : '';
         html += '<div class="nav-item' + monActive + '">';
         html += '<a href="/admin/live-monitoring" class="nav-link' + monActive + '" style="display:flex;align-items:center;gap:5px;">';

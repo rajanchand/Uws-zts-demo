@@ -500,7 +500,7 @@ router.get('/logout', async (req, res) => {
     try {
         if (req.session && req.session.userId) {
             const userId = req.session.userId;
-            await supabase.from('users').update({ active_session_token: null }).eq('id', userId).catch(() => {});
+            await supabase.from('users').update({ active_session_token: null }).eq('id', userId);
             await logEvent(userId, 'LOGOUT', 'User logged out', req.ip).catch(() => {});
         }
 

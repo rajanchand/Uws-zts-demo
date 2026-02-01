@@ -7,7 +7,7 @@ const path = require('path');
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 
-// 1. HELMET — security headers (CSP, HSTS, X-Frame-Options, etc.)
+// Security headers
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -25,9 +25,8 @@ app.use(helmet({
     hsts: false
 }));
 
-// 2. HTTPS redirect in production
 if (isProduction) {
-    app.use(function (req, res, next) {
+    app.use((req, res, next) => {
         if (req.headers['x-forwarded-proto'] !== 'https') {
             return res.redirect('https://' + req.headers.host + req.url);
         }
@@ -36,12 +35,11 @@ if (isProduction) {
 }
 
 app.set('trust proxy', 1);
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 3. SESSION — secure cookies, SameSite strict
+// Session config
 app.use(session({
     secret: process.env.SESSION_SECRET || 'zts-default-secret',
     resave: false,
@@ -55,58 +53,53 @@ app.use(session({
     rolling: true
 }));
 
-// 4. CSRF protection
 const { csrfProtection, generateCSRFToken } = require('./middleware/csrf');
-
-// 5. Rate limiters
 const { apiLimiter } = require('./middleware/rateLimiter');
-
-// 6. HMAC request verification
 const { verifyHMAC } = require('./middleware/hmacVerify');
 
-// Route imports
-const authRoutes       = require('./routes/authRoutes');
-const dashboardRoutes  = require('./routes/dashboardRoutes');
-const profileRoutes    = require('./routes/profileRoutes');
-const mappingRoutes    = require('./routes/mappingRoutes');
-const networkRoutes    = require('./routes/networkRoutes');
+const authRoutes = require('./routes/authRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const mappingRoutes = require('./routes/mappingRoutes');
+const networkRoutes = require('./routes/networkRoutes');
 const monitoringRoutes = require('./routes/monitoringRoutes');
 const securityPostureRoutes = require('./routes/securityPostureRoutes');
+const rbacRoutes = require('./routes/rbacRoutes');
+
 const { requireLogin } = require('./middleware/auth');
-const { requireRole }  = require('./middleware/rbac');
+const { requireRole, requirePermission } = require('./middleware/rbac');
 const { flagHighRisk } = require('./middleware/riskCheck');
 const { handleReAuth } = require('./middleware/stepUpAuth');
 
-// Global middleware chain
-app.use(requireLogin); // auth check first
-app.use(flagHighRisk); // continuous risk check
-app.use(csrfProtection); // CSRF validation on POST/PUT/DELETE
-app.use(verifyHMAC); // HMAC integrity check
+// Global middleware
+app.use(requireLogin);
+app.use(flagHighRisk);
+app.use(csrfProtection);
+app.use(verifyHMAC);
 
-// CSRF token endpoint — frontend fetches this token
-app.get('/api/csrf-token', function (req, res) {
-    var token = generateCSRFToken(req);
-    res.json({ csrfToken: token });
+app.get('/api/csrf-token', (req, res) => {
+    res.json({ csrfToken: generateCSRFToken(req) });
 });
 
-// Step-up re-authentication endpoint
 app.post('/api/verify-reauth', handleReAuth);
-
-// Apply general API rate limiter to all /api/ routes
 app.use('/api', apiLimiter);
 
-// Mount routes
+// Routes
 app.use('/', authRoutes);
 app.use('/', dashboardRoutes);
 app.use('/', profileRoutes);
-app.use('/', requireRole(['SuperAdmin']), mappingRoutes);
-app.use('/', requireRole(['SuperAdmin']), monitoringRoutes);
-app.use('/', requireRole(['SuperAdmin']), networkRoutes);
-app.use('/', securityPostureRoutes);
 
-app.get('/', (req, res) => {
-    res.redirect('/dashboard');
+// RBAC & Mapping
+app.get('/mapping/user-access', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'user-access.html'));
 });
+app.use('/', rbacRoutes);
+app.use('/', requirePermission('manage_users'), mappingRoutes);
+app.use('/', requirePermission('view_monitoring'), monitoringRoutes);
+app.use('/', requireRole('SuperAdmin'), networkRoutes);
+app.use('/', requirePermission('view_posture'), securityPostureRoutes);
+
+app.get('/', (req, res) => res.redirect('/dashboard'));
 
 app.get('/security-block', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'security-block.html'));
@@ -114,9 +107,5 @@ app.get('/security-block', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`\n  ZTS - Zero Trust Security Demo`);
-    console.log(`  NIST SP 800-207 Implementation`);
-    console.log(`  Security Features: Helmet, Rate-Limit, CSRF, HMAC, AES-256`);
-    console.log(`  Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
-    console.log(`  Running on http://localhost:${PORT}\n`);
+    console.log(`Server running at http://localhost:${PORT}`);
 });

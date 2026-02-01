@@ -152,7 +152,7 @@ router.get('/api/risk-data', async (req, res) => {
 });
 
 router.get('/api/admin-stats', async (req, res) => {
-    if (req.session.role !== 'SuperAdmin') {
+    if (req.session.role !== 'SuperAdmin' && req.session.role !== 'IT') {
         return res.status(403).json({ error: 'Access denied' });
     }
 
