@@ -649,34 +649,34 @@
         async function showUserPermissions(username, role) {
             document.getElementById('permModalUser').textContent = 'Role: ' + role + ' (' + username + ')';
             var list = document.getElementById('permModalList');
-            
-            var perms = [
-                { name: 'Onboard New Users', hr: true, it: false, admin: true },
-                { name: 'Reset User Passwords', hr: true, it: false, admin: true },
-                { name: 'Approve Devices', hr: true, it: false, admin: true },
-                { name: 'Change User Roles', hr: true, it: false, admin: true },
-                { name: 'Delete Users/Depts', hr: false, it: false, admin: true },
-                { name: 'Live Monitoring', hr: false, it: true, admin: true },
-                { name: 'Risk Score Analysis', hr: false, it: true, admin: true },
-                { name: 'IP Rules / Blocklist', hr: false, it: false, admin: true },
-                { name: 'System Performance', hr: false, it: true, admin: true }
-            ];
-
-            var html = '';
-            perms.forEach(function(p) {
-                var has = false;
-                if (role === 'SuperAdmin') has = p.admin;
-                else if (role === 'HR') has = p.hr;
-                else if (role === 'IT') has = p.it;
-                
-                var icon = has ? '<span style="color:#27ae60; font-weight:bold; margin-right:10px;">✓</span>' : '<span style="color:#e74c3c; opacity:0.3; margin-right:10px;">✗</span>';
-                var style = has ? '' : 'color:#aaa; text-decoration:line-through; font-size:0.85rem;';
-                
-                html += '<div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px solid #f5f5f5;' + style + '">' + icon + p.name + '</div>';
-            });
-            
-            list.innerHTML = html;
+            list.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">Loading permissions...</div>';
             document.getElementById('viewPermissionsModal').style.display = 'flex';
+            
+            try {
+                var res = await fetch('/api/rbac/matrix');
+                var data = await res.json();
+                var perms = data.matrix[role];
+                
+                if (!perms) {
+                    list.innerHTML = '<div style="text-align:center; padding:20px; color:#e74c3c;">No permissions found for this role.</div>';
+                    return;
+                }
+
+                var html = '';
+                perms.forEach(function(p) {
+                    // For SuperAdmin, override visually to grant all since they bypass checks in backend anyway
+                    var has = (role === 'SuperAdmin') ? true : p.is_granted;
+                    
+                    var icon = has ? '<span style="color:#27ae60; font-weight:bold; margin-right:10px;">✓</span>' : '<span style="color:#e74c3c; opacity:0.3; margin-right:10px;">✗</span>';
+                    var style = has ? '' : 'color:#aaa; text-decoration:line-through; font-size:0.85rem;';
+                    
+                    html += '<div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px solid #f5f5f5;' + style + '">' + icon + p.permission_name + '</div>';
+                });
+                
+                list.innerHTML = html;
+            } catch (err) {
+                list.innerHTML = '<div style="text-align:center; padding:20px; color:#e74c3c;">Failed to load permissions.</div>';
+            }
         }
 
         init();
