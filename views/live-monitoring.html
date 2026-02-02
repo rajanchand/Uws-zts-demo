@@ -585,7 +585,7 @@
             var session = await (await fetch('/api/session')).json();
             if (!session.loggedIn) return location.href = '/login';
 
-            buildNavbar(session.user.role, 'live-monitoring', session.user.username);
+            buildNavbar(session.user.role, 'live-monitoring', session.user.username, session.user.permissions);
 
             await loadStats();
 

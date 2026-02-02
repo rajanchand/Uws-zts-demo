@@ -439,7 +439,7 @@
                 var res = await fetch('/api/dashboard-data');
                 var d = await res.json();
 
-                buildNavbar(d.user.role, 'dashboard', d.user.username);
+                buildNavbar(d.user.role, 'dashboard', d.user.username, d.user.permissions);
 
                 // greeting
                 document.getElementById('greetingText').textContent =
@@ -465,14 +465,16 @@
                     { label: 'Risk Score', link: '/risk' }
                 ];
 
-                if (d.user.role === 'SuperAdmin' || d.user.role === 'HR') {
+                if (d.user.permissions.includes('manage_users') || d.user.permissions.includes('manage_depts')) {
                     actions.unshift({ label: 'User Management', link: '/mapping' });
+                }
+                if (d.user.permissions.includes('approve_devices')) {
                     actions.push({ label: 'Device Registry', link: '/register-device' });
                 }
-                if (d.user.role === 'SuperAdmin' || d.user.role === 'IT') {
+                if (d.user.permissions.includes('view_monitoring')) {
                     actions.push({ label: 'Live Monitor', link: '/admin/live-monitoring' });
                 }
-                if (d.user.role === 'SuperAdmin') {
+                if (d.user.permissions.includes('manage_network')) {
                     actions.push({ label: 'IP Rules', link: '/network' });
                 }
 
@@ -480,8 +482,11 @@
                     return '<a href="' + a.link + '" class="action-btn">' + a.label + '</a>';
                 }).join('');
 
-                // load admin stats (SuperAdmin only)
-                if (d.user.role === 'SuperAdmin') {
+                // load admin stats if user has any administrative permission
+                var hasAdminStats = d.user.permissions.includes('manage_users') || 
+                                    d.user.permissions.includes('view_monitoring') || 
+                                    d.user.permissions.includes('analyze_risk');
+                if (hasAdminStats) {
                     var statsRes = await fetch('/api/admin-stats');
                     var stats = await statsRes.json();
 

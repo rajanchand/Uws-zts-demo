@@ -299,7 +299,7 @@
             var s = await (await fetch('/api/session')).json();
             if (!s.loggedIn) return location.href = '/login';
             window.userRole = s.user.role; // store globally for UI filtering
-            buildNavbar(s.user.role, 'mapping', s.user.username);
+            buildNavbar(s.user.role, 'mapping', s.user.username, s.user.permissions);
             
             // UI Role Filtering
             if (s.user.role === 'HR') {

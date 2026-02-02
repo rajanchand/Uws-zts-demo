@@ -48,7 +48,11 @@
     <div class="container">
         <div class="card">
             <h2>Role Permissions Matrix</h2>
-            <p>Manage what each role can do. Click the icons to toggle access.</p>
+            <p>Manage what each role can do. Click the icons to toggle access. <br>
+                <span style="display:inline-block; margin-top:8px; padding:4px 8px; background:#e8f5e9; color:#2e7d32; border-radius:4px; font-size:0.85rem; font-weight:500;">
+                    ✓ Changes are saved instantly and automatically
+                </span>
+            </p>
 
             <table class="access-matrix">
                 <thead id="head"></thead>
@@ -65,7 +69,7 @@
             const s = await (await fetch('/api/session')).json();
             if (!s.loggedIn) return location.href = '/login';
             
-            buildNavbar(s.user.role, 'user-access', s.user.username);
+            buildNavbar(s.user.role, 'user-access', s.user.username, s.user.permissions);
             
             const res = await fetch('/api/rbac/matrix');
             const { matrix } = await res.json();

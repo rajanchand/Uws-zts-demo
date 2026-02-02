@@ -84,7 +84,7 @@
         async function init() {
             var s = await (await fetch('/api/session')).json();
             if (!s.loggedIn) return location.href = '/login';
-            buildNavbar(s.user.role, 'profile', s.user.username);
+            buildNavbar(s.user.role, 'profile', s.user.username, s.user.permissions);
 
             var profile = await (await fetch('/api/profile')).json();
             document.getElementById('profileUsername').value = profile.username || '';

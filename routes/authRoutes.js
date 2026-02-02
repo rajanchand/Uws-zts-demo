@@ -1,6 +1,8 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const UAParser = require('ua-parser-js');
 const { supabase } = require('../db');
 const { generateOTP, verifyOTP } = require('../services/otpService');
@@ -12,6 +14,18 @@ const { logEvent } = require('../services/auditService');
 const { logSecurityEvent } = require('../services/monitorService');
 const { generateCSRFToken } = require('../middleware/csrf');
 const { loginLimiter, otpLimiter } = require('../middleware/rateLimiter');
+
+// Helper to get permissions array for a role
+function getRolePermissions(role) {
+    if (role === 'SuperAdmin') return ['manage_users', 'delete_users', 'reset_passwords', 'approve_devices', 'manage_depts', 'view_monitoring', 'analyze_risk', 'manage_network', 'view_posture'];
+    try {
+        const permsJSON = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'role_permissions.json'), 'utf8'));
+        const rolePerms = permsJSON[role] || {};
+        return Object.keys(rolePerms).filter(k => rolePerms[k]);
+    } catch (e) {
+        return [];
+    }
+}
 
 const router = express.Router();
 
@@ -479,7 +493,8 @@ router.get('/api/session', (req, res) => {
             id: req.session.userId,
             username: req.session.username,
             role: req.session.role,
-            department: req.session.department
+            department: req.session.department,
+            permissions: getRolePermissions(req.session.role)
         },
         risk: {
             score: req.session.riskScore,

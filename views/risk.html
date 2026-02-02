@@ -100,7 +100,7 @@
         async function init() {
             var s = await (await fetch('/api/session')).json();
             if (!s.loggedIn) return location.href = '/login';
-            buildNavbar(s.user.role, 'risk', s.user.username);
+            buildNavbar(s.user.role, 'risk', s.user.username, s.user.permissions);
 
             var d = await (await fetch('/api/risk-data')).json();
 
