@@ -266,7 +266,7 @@
         </div>
     </div>
 
-    <script src="/js/app.js"></script>
+    <script src="/js/app.js?v=2"></script>
     <script>
         var allDepartments = [];
 
@@ -299,12 +299,17 @@
             var s = await (await fetch('/api/session')).json();
             if (!s.loggedIn) return location.href = '/login';
             window.userRole = s.user.role; // store globally for UI filtering
+            window.userPermissions = s.user.permissions || [];
             buildNavbar(s.user.role, 'mapping', s.user.username, s.user.permissions);
             
-            // UI Role Filtering
-            if (s.user.role === 'HR') {
+            // UI Permission Filtering
+            if (!s.user.permissions.includes('manage_depts')) {
                 const createDeptBtn = document.querySelector('button[onclick="showCreateDept()"]');
                 if (createDeptBtn) createDeptBtn.style.display = 'none';
+            }
+            if (!s.user.permissions.includes('manage_users')) {
+                const createUserBtn = document.querySelector('button[onclick="showCreateUser()"]');
+                if (createUserBtn) createUserBtn.style.display = 'none';
             }
 
             loadUsers();
@@ -332,7 +337,7 @@
                 actions += '<button class="btn btn-sm btn-outline" onclick="showResetPassword(' + u.id + ',\'' + u.username + '\')">Password</button> ';
                 actions += '<button class="btn btn-sm btn-outline" onclick="showUserPermissions(\'' + u.username + '\',\'' + u.role + '\')" title="View Permissions">👁</button> ';
                 
-                if (window.userRole === 'SuperAdmin') {
+                if (window.userPermissions.includes('delete_users')) {
                     actions += '<button class="btn btn-sm btn-danger" onclick="deleteUser(' + u.id + ',\'' + u.username + '\')">Delete</button>';
                 }
 
@@ -373,7 +378,7 @@
                     '<td>' +
                     '<button class="btn btn-sm btn-primary" onclick="showSetHead(' + d.id + ',\'' + d.name + '\')" style="margin-right:4px;">Set Head</button>';
                 
-                if (window.userRole === 'SuperAdmin') {
+                if (window.userPermissions.includes('manage_depts')) {
                     tr.innerHTML += '<button class="btn btn-sm btn-danger" onclick="deleteDept(' + d.id + ',\'' + d.name + '\')">Delete</button>';
                 }
                 tr.innerHTML += '</td>';

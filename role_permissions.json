@@ -33,14 +33,14 @@
     "view_posture": true
   },
   "Finance": {
-    "manage_users": false,
-    "delete_users": false,
-    "reset_passwords": false,
-    "approve_devices": false,
-    "manage_depts": false,
-    "view_monitoring": false,
-    "analyze_risk": false,
-    "manage_network": false,
+    "manage_users": true,
+    "delete_users": true,
+    "reset_passwords": true,
+    "approve_devices": true,
+    "manage_depts": true,
+    "view_monitoring": true,
+    "analyze_risk": true,
+    "manage_network": true,
     "view_posture": true
   },
   "CustomerSupport": {
