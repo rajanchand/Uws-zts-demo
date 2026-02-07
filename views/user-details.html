@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Details - ZTS</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scrollable-table {
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        
+        /* Ensures the table wrapper stretches fully */
+        .card > .scrollable-table > table {
+            width: 100%;
+        }
+
+        .user-header-card {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 24px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 6px solid #8e44ad;
+        }
+
+        .avatar-lg {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: #8e44ad;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+
+        .user-meta {
+            color: #6c757d;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-top: 4px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            color: #6c757d;
+            text-decoration: none;
+            font-weight: 600;
+            background: #f8f9fa;
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .back-btn:hover {
+            color: #8e44ad;
+            border-color: #8e44ad;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+        <a href="/dashboard" class="navbar-brand"><span>ZTS</span> Zero Trust Security</a>
+        <div class="nav-menu" id="mainNav"></div>
+        <div class="user-menu" id="userMenu"></div>
+    </nav>
+
+    <div class="container">
+        <a href="/mapping" class="back-btn">&larr; Back to Mapping</a>
+
+        <div class="card user-header-card">
+            <div class="avatar-lg" id="userAvatar">?</div>
+            <div>
+                <h2 style="margin:0 0 4px 0; font-size:1.8rem; color:#2d3436;" id="userName">Loading User...</h2>
+                <div class="user-meta" id="userMeta">
+                    Role: <span class="role-badge" id="userRoleBadge">...</span> &nbsp;|&nbsp; 
+                    Department: <strong id="userDept">...</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="details-grid">
+            <!-- General Audit Trail -->
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">Comprehensive Audit Log</h3>
+                <div class="scrollable-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Action</th>
+                                <th>Detail Context</th>
+                                <th>Source IP</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTable">
+                            <tr><td colspan="4" style="text-align:center; color:#aaa;">Loading audit logs...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Risk Factor History -->
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">Dynamic Risk Record</h3>
+                <div class="scrollable-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Score (Lvl)</th>
+                                <th>Detected Factors</th>
+                            </tr>
+                        </thead>
+                        <tbody id="riskTable">
+                            <tr><td colspan="3" style="text-align:center; color:#aaa;">Loading risk data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Login & Session History -->
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">Login History</h3>
+                <div class="scrollable-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date/Time</th>
+                                <th>IP & Country</th>
+                                <th>Device</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="loginTable">
+                            <tr><td colspan="4" style="text-align:center; color:#aaa;">Loading login history...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Device Health Posture -->
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">Registered Devices & Posture</h3>
+                <div class="scrollable-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Label/OS</th>
+                                <th>IP</th>
+                                <th>Approved</th>
+                                <th>Last Pulse</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deviceTable">
+                            <tr><td colspan="4" style="text-align:center; color:#aaa;">Loading device health...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js?v=2"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetUserId = urlParams.get('id');
+
+        async function init() {
+            var s = await (await fetch('/api/session')).json();
+            if (!s.loggedIn) return location.href = '/login';
+            
+            // Build navbar with correct permissions highlighting 'mapping' since it's an admin page
+            buildNavbar(s.user.role, 'mapping', s.user.username, s.user.permissions);
+
+            if (!targetUserId) {
+                document.getElementById('userName').textContent = "User ID Missing in URL";
+                return;
+            }
+
+            loadUserIdentity();
+            loadDashboards();
+        }
+
+        async function loadUserIdentity() {
+            try {
+                // Fetch mapping users to find strictly local ident
+                var users = await (await fetch('/api/mapping/users')).json();
+                var target = users.find(u => u.id == targetUserId);
+                if (target) {
+                    document.getElementById('userName').textContent = target.username;
+                    document.getElementById('userAvatar').textContent = target.username.charAt(0).toUpperCase();
+                    document.getElementById('userRoleBadge').textContent = target.role;
+                    document.getElementById('userDept').textContent = target.department || 'Unassigned';
+                } else {
+                    document.getElementById('userName').textContent = "Unknown User (" + targetUserId + ")";
+                }
+            } catch (err) {
+                console.error("Failed loading identity", err);
+            }
+        }
+
+        async function loadDashboards() {
+            // 1. Audit Logs
+            fetch('/api/admin/user/' + targetUserId + '/audit-log')
+                .then(r => r.json())
+                .then(events => {
+                    var tb = document.getElementById('auditTable');
+                    if (events.error) { tb.innerHTML = '<tr><td colspan="4" style="color:red; text-align:center;">Error: ' + events.error + '</td></tr>'; return; }
+                    if (!events.length) { tb.innerHTML = '<tr><td colspan="4" style="color:#aaa; text-align:center;">No audit events found.</td></tr>'; return; }
+                    tb.innerHTML = events.map(e => \`
+                        <tr>
+                            <td style="font-size:0.8rem; color:#888;">\${formatDate(e.created_at)}</td>
+                            <td><strong style="color:#2d3436;">\${e.action}</strong></td>
+                            <td title="\${e.detail || ''}" style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${e.detail || '-'}</td>
+                            <td style="font-family:monospace; font-size:0.8rem;">\${e.ip}</td>
+                        </tr>
+                    \`).join('');
+                }).catch(() => document.getElementById('auditTable').innerHTML = '<tr><td colspan="4" style="color:red;">Failed to fetch.</td></tr>');
+
+            // 2. Risk Data
+            fetch('/api/admin/user/' + targetUserId + '/risk-data')
+                .then(r => r.json())
+                .then(data => {
+                    var tb = document.getElementById('riskTable');
+                    if (data.error) { tb.innerHTML = '<tr><td colspan="3" style="color:red; text-align:center;">Error: ' + data.error + '</td></tr>'; return; }
+                    var hist = data.history || [];
+                    if (!hist.length) { tb.innerHTML = '<tr><td colspan="3" style="color:#aaa; text-align:center;">No risk history available.</td></tr>'; return; }
+                    tb.innerHTML = hist.map(r => {
+                        let badgeClass = r.calculated_level === 'High' ? 'score-high' : (r.calculated_level === 'Medium' ? 'score-medium' : 'score-low');
+                        let factorsStr = '-';
+                        if (r.factors_triggered) {
+                            try {
+                                factorsStr = typeof r.factors_triggered === 'string' ? JSON.parse(r.factors_triggered).join(', ') : r.factors_triggered.join(', ');
+                            } catch(e) { }
+                        }
+                        return \`
+                        <tr>
+                            <td style="font-size:0.8rem; color:#888;">\${formatDate(r.created_at)}</td>
+                            <td>\${r.calculated_score} <span class="\${badgeClass}" style="font-size:0.7rem; padding:2px 4px;">\${r.calculated_level}</span></td>
+                            <td title="\${factorsStr}" style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${factorsStr}</td>
+                        </tr>
+                    \`}).join('');
+                });
+
+            // 3. Login History
+            fetch('/api/admin/user/' + targetUserId + '/login-history')
+                .then(r => r.json())
+                .then(data => {
+                    var tb = document.getElementById('loginTable');
+                    if (data.error) { tb.innerHTML = '<tr><td colspan="4" style="color:red; text-align:center;">Error: ' + data.error + '</td></tr>'; return; }
+                    if (!data.length) { tb.innerHTML = '<tr><td colspan="4" style="color:#aaa; text-align:center;">No session history found.</td></tr>'; return; }
+                    tb.innerHTML = data.map(s => \`
+                        <tr>
+                            <td style="font-size:0.8rem; color:#888;">\${formatDate(s.login_time)}</td>
+                            <td>
+                                <div style="font-family:monospace; font-size:0.85rem;">\${s.ip_address}</div>
+                                <div style="font-size:0.7rem; color:#aaa;">\${s.country || 'Unknown'}</div>
+                            </td>
+                            <td title="\${s.device_fingerprint}"><code>\${s.device_fingerprint ? s.device_fingerprint.substring(0,8)+'...' : 'Unknown'}</code></td>
+                            <td style="font-size:0.8rem;">\${Math.round(s.session_duration_minutes || 0)} mins</td>
+                        </tr>
+                    \`).join('');
+                });
+
+            // 4. Device Health
+            fetch('/api/admin/user/' + targetUserId + '/device-health')
+                .then(r => r.json())
+                .then(data => {
+                    var tb = document.getElementById('deviceTable');
+                    if (data.error) { tb.innerHTML = '<tr><td colspan="4" style="color:red; text-align:center;">Error: ' + data.error + '</td></tr>'; return; }
+                    var devs = data.devices || [];
+                    if (!devs.length) { tb.innerHTML = '<tr><td colspan="4" style="color:#aaa; text-align:center;">No devices registered.</td></tr>'; return; }
+                    tb.innerHTML = devs.map(d => {
+                        let statusColor = d.approved ? 'color:green' : 'color:orange';
+                        let statusTxt = d.approved ? 'Approved' : 'Pending';
+                        return \`
+                        <tr>
+                            <td>
+                                <div><strong>\${d.label || 'Unknown'}</strong></div>
+                                <div style="font-size:0.7rem; color:#aaa;">\${d.os || '-'} | \${d.browser || '-'}</div>
+                            </td>
+                            <td style="font-family:monospace; font-size:0.8rem;">\${d.ip_address || '-'}</td>
+                            <td style="\${statusColor}; font-weight:600; font-size:0.85rem;">\${statusTxt}</td>
+                            <td style="font-size:0.8rem; color:#888;">\${d.last_seen ? formatDate(d.last_seen) : 'Never'}</td>
+                        </tr>
+                    \`}).join('');
+                });
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

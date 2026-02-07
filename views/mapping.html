@@ -336,6 +336,7 @@
                 actions += '<button class="btn btn-sm btn-outline" onclick="showChangeRole(' + u.id + ',\'' + u.username + '\',\'' + u.role + '\')">Role</button> ';
                 actions += '<button class="btn btn-sm btn-outline" onclick="showResetPassword(' + u.id + ',\'' + u.username + '\')">Password</button> ';
                 actions += '<button class="btn btn-sm btn-outline" onclick="showUserPermissions(\'' + u.username + '\',\'' + u.role + '\')" title="View Permissions">👁</button> ';
+                actions += '<button class="btn btn-sm btn-primary" style="background:#8e44ad; border-color:#8e44ad; color:white; margin-right:4px;" onclick="window.location.href=\'/admin/user-details?id=' + u.id + '\'">Details</button> ';
                 
                 if (window.userPermissions.includes('delete_users')) {
                     actions += '<button class="btn btn-sm btn-danger" onclick="deleteUser(' + u.id + ',\'' + u.username + '\')">Delete</button>';

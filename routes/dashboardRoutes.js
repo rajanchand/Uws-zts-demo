@@ -158,6 +158,10 @@ router.get('/risk', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'views', 'risk.html'));
 });
 
+router.get('/admin/user-details', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'views', 'user-details.html'));
+});
+
 router.get('/api/risk-data', async (req, res) => {
     try {
         const history = await getRiskHistory(req.session.userId, 20);
@@ -277,7 +281,7 @@ router.get('/api/admin-stats', async (req, res) => {
 
 // SuperAdmin: View any user's audit log
 router.get('/api/admin/user/:userId/audit-log', async (req, res) => {
-    if (req.session.role !== 'SuperAdmin') {
+    if (!hasPermission(req.session.role, 'manage_users')) {
         return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -311,9 +315,9 @@ router.get('/api/admin/user/:userId/audit-log', async (req, res) => {
     }
 });
 
-// SuperAdmin: View any user's risk score, factors & history
+// SuperAdmin: View any user's risk data
 router.get('/api/admin/user/:userId/risk-data', async (req, res) => {
-    if (req.session.role !== 'SuperAdmin') {
+    if (!hasPermission(req.session.role, 'manage_users')) {
         return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -369,9 +373,9 @@ router.get('/api/admin/user/:userId/risk-data', async (req, res) => {
     }
 });
 
-// SuperAdmin: View any user's login/session history
+// SuperAdmin: View any user's login history & sessions
 router.get('/api/admin/user/:userId/login-history', async (req, res) => {
-    if (req.session.role !== 'SuperAdmin') {
+    if (!hasPermission(req.session.role, 'manage_users')) {
         return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -425,9 +429,9 @@ router.get('/api/admin/user/:userId/login-history', async (req, res) => {
     }
 });
 
-// SuperAdmin: View any user's device health & registered devices
+// SuperAdmin: View any user's device health
 router.get('/api/admin/user/:userId/device-health', async (req, res) => {
-    if (req.session.role !== 'SuperAdmin') {
+    if (!hasPermission(req.session.role, 'manage_users')) {
         return res.status(403).json({ error: 'Access denied' });
     }
 
