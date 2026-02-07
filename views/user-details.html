@@ -231,14 +231,14 @@
                     var tb = document.getElementById('auditTable');
                     if (events.error) { tb.innerHTML = '<tr><td colspan="4" style="color:red; text-align:center;">Error: ' + events.error + '</td></tr>'; return; }
                     if (!events.length) { tb.innerHTML = '<tr><td colspan="4" style="color:#aaa; text-align:center;">No audit events found.</td></tr>'; return; }
-                    tb.innerHTML = events.map(e => \`
+                    tb.innerHTML = events.map(e => `
                         <tr>
-                            <td style="font-size:0.8rem; color:#888;">\${formatDate(e.created_at)}</td>
-                            <td><strong style="color:#2d3436;">\${e.action}</strong></td>
-                            <td title="\${e.detail || ''}" style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${e.detail || '-'}</td>
-                            <td style="font-family:monospace; font-size:0.8rem;">\${e.ip}</td>
+                            <td style="font-size:0.8rem; color:#888;">${formatDate(e.created_at)}</td>
+                            <td><strong style="color:#2d3436;">${e.action}</strong></td>
+                            <td title="${e.detail || ''}" style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${e.detail || '-'}</td>
+                            <td style="font-family:monospace; font-size:0.8rem;">${e.ip}</td>
                         </tr>
-                    \`).join('');
+                    `).join('');
                 }).catch(() => document.getElementById('auditTable').innerHTML = '<tr><td colspan="4" style="color:red;">Failed to fetch.</td></tr>');
 
             // 2. Risk Data
@@ -257,13 +257,13 @@
                                 factorsStr = typeof r.factors_triggered === 'string' ? JSON.parse(r.factors_triggered).join(', ') : r.factors_triggered.join(', ');
                             } catch(e) { }
                         }
-                        return \`
+                        return `
                         <tr>
-                            <td style="font-size:0.8rem; color:#888;">\${formatDate(r.created_at)}</td>
-                            <td>\${r.calculated_score} <span class="\${badgeClass}" style="font-size:0.7rem; padding:2px 4px;">\${r.calculated_level}</span></td>
-                            <td title="\${factorsStr}" style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${factorsStr}</td>
+                            <td style="font-size:0.8rem; color:#888;">${formatDate(r.created_at)}</td>
+                            <td>${r.calculated_score} <span class="${badgeClass}" style="font-size:0.7rem; padding:2px 4px;">${r.calculated_level}</span></td>
+                            <td title="${factorsStr}" style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${factorsStr}</td>
                         </tr>
-                    \`}).join('');
+                    `}).join('');
                 });
 
             // 3. Login History
@@ -273,17 +273,17 @@
                     var tb = document.getElementById('loginTable');
                     if (data.error) { tb.innerHTML = '<tr><td colspan="4" style="color:red; text-align:center;">Error: ' + data.error + '</td></tr>'; return; }
                     if (!data.length) { tb.innerHTML = '<tr><td colspan="4" style="color:#aaa; text-align:center;">No session history found.</td></tr>'; return; }
-                    tb.innerHTML = data.map(s => \`
+                    tb.innerHTML = data.map(s => `
                         <tr>
-                            <td style="font-size:0.8rem; color:#888;">\${formatDate(s.login_time)}</td>
+                            <td style="font-size:0.8rem; color:#888;">${formatDate(s.login_time)}</td>
                             <td>
-                                <div style="font-family:monospace; font-size:0.85rem;">\${s.ip_address}</div>
-                                <div style="font-size:0.7rem; color:#aaa;">\${s.country || 'Unknown'}</div>
+                                <div style="font-family:monospace; font-size:0.85rem;">${s.ip_address}</div>
+                                <div style="font-size:0.7rem; color:#aaa;">${s.country || 'Unknown'}</div>
                             </td>
-                            <td title="\${s.device_fingerprint}"><code>\${s.device_fingerprint ? s.device_fingerprint.substring(0,8)+'...' : 'Unknown'}</code></td>
-                            <td style="font-size:0.8rem;">\${Math.round(s.session_duration_minutes || 0)} mins</td>
+                            <td title="${s.device_fingerprint}"><code>${s.device_fingerprint ? s.device_fingerprint.substring(0,8)+'...' : 'Unknown'}</code></td>
+                            <td style="font-size:0.8rem;">${Math.round(s.session_duration_minutes || 0)} mins</td>
                         </tr>
-                    \`).join('');
+                    `).join('');
                 });
 
             // 4. Device Health
@@ -297,17 +297,17 @@
                     tb.innerHTML = devs.map(d => {
                         let statusColor = d.approved ? 'color:green' : 'color:orange';
                         let statusTxt = d.approved ? 'Approved' : 'Pending';
-                        return \`
+                        return `
                         <tr>
                             <td>
-                                <div><strong>\${d.label || 'Unknown'}</strong></div>
-                                <div style="font-size:0.7rem; color:#aaa;">\${d.os || '-'} | \${d.browser || '-'}</div>
+                                <div><strong>${d.label || 'Unknown'}</strong></div>
+                                <div style="font-size:0.7rem; color:#aaa;">${d.os || '-'} | ${d.browser || '-'}</div>
                             </td>
-                            <td style="font-family:monospace; font-size:0.8rem;">\${d.ip_address || '-'}</td>
-                            <td style="\${statusColor}; font-weight:600; font-size:0.85rem;">\${statusTxt}</td>
-                            <td style="font-size:0.8rem; color:#888;">\${d.last_seen ? formatDate(d.last_seen) : 'Never'}</td>
+                            <td style="font-family:monospace; font-size:0.8rem;">${d.ip_address || '-'}</td>
+                            <td style="${statusColor}; font-weight:600; font-size:0.85rem;">${statusTxt}</td>
+                            <td style="font-size:0.8rem; color:#888;">${d.last_seen ? formatDate(d.last_seen) : 'Never'}</td>
                         </tr>
-                    \`}).join('');
+                    `}).join('');
                 });
         }
 
