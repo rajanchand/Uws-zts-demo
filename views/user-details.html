@@ -37,10 +37,11 @@
             align-items: center;
             justify-content: space-between;
             padding: 24px 32px;
-            background: linear-gradient(135deg, #1e1e2d 0%, #151521 100%);
+            background: #ffffff;
             border-radius: 12px;
-            color: white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            color: #2d3748;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             margin-bottom: 24px;
         }
 
@@ -53,16 +54,16 @@
         .avatar-lg {
             width: 80px;
             height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #8e44ad 0%, #3498db 100%);
-            color: #fff;
+            border-radius: 16px;
+            background: #f3e8ff;
+            color: #8e44ad;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 2.5rem;
             font-weight: 700;
-            box-shadow: 0 4px 15px rgba(142, 68, 173, 0.4);
-            border: 3px solid rgba(255,255,255,0.1);
+            box-shadow: inset 0 2px 4px rgba(142,68,173,0.1);
+            border: 1px solid #e9d5ff;
         }
 
         .user-meta {
@@ -80,7 +81,7 @@
 
         .kpi-box {
             text-align: right;
-            border-right: 1px solid rgba(255,255,255,0.1);
+            border-right: 1px solid #e2e8f0;
             padding-right: 30px;
         }
         
@@ -90,16 +91,17 @@
         }
 
         .kpi-val {
-            font-size: 2rem;
+            font-size: 2.2rem;
             font-weight: 800;
-            color: #fff;
+            color: #1a202c;
             margin-bottom: 4px;
+            line-height:1;
         }
 
         .kpi-label {
             font-size: 0.8rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             color: #718096;
             font-weight: 600;
         }
@@ -129,13 +131,13 @@
 
         /* Custom Badges */
         .role-badge-premium {
-            background: rgba(255,255,255,0.1);
-            color: #e2e8f0;
+            background: #ebf4ff;
+            color: #3182ce;
             padding: 4px 12px;
             border-radius: 20px;
             font-weight: 600;
             font-size: 0.8rem;
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid #bee3f8;
         }
 
         .card-title {
@@ -173,8 +175,8 @@
                     <h2 style="margin:0 0 6px 0; font-size:2rem; font-weight:700;" id="userName">Loading Target...</h2>
                     <div class="user-meta" id="userMeta">
                         <span class="role-badge-premium" id="userRoleBadge">Initializing</span>
-                        <span style="margin: 0 12px; opacity:0.5;">|</span>
-                        Dept: <strong id="userDept" style="color:#e2e8f0;">...</strong>
+                        <span style="margin: 0 12px; color:#cbd5e0;">|</span>
+                        Dept: <strong id="userDept" style="color:#4a5568;">...</strong>
                         <span id="userStatus" style="margin-left: 12px;"></span>
                     </div>
                 </div>
