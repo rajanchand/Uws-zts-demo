@@ -330,6 +330,9 @@
                 if (u.status === 'active') {
                     actions += '<button class="btn btn-sm btn-warning" onclick="suspendUser(' + u.id + ')">Suspend</button> ';
                     actions += '<button class="btn btn-sm btn-danger" onclick="blockUser(' + u.id + ')">Block</button> ';
+                } else if (u.status === 'active_pending_approval') {
+                    actions += '<button class="btn btn-sm btn-success" style="background:#2f855a; border-color:#2f855a;" onclick="approveUserRisk(' + u.id + ')">Approve Login</button> ';
+                    actions += '<button class="btn btn-sm btn-danger" onclick="blockUser(' + u.id + ')">Block</button> ';
                 } else {
                     actions += '<button class="btn btn-sm btn-success" onclick="activateUser(' + u.id + ')">Activate</button> ';
                 }
@@ -436,6 +439,22 @@
 
             showToast(result.message, result.success ? 'success' : 'error');
             if (result.success) loadUsers();
+        }
+
+        async function approveUserRisk(userId) {
+            if (!confirm('This user session was flagged as High Risk. Are you sure you want to approve this login?')) return;
+            const res = await fetch('/api/mapping/users/approve-risk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-csrf-token': _csrfToken },
+                body: JSON.stringify({ userId: userId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message);
+                loadUsers();
+            } else {
+                alert(data.message);
+            }
         }
 
         async function suspendUser(id) {

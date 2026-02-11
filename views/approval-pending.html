@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High Risk Login - Pending Approval</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .approval-container {
+            max-width: 500px;
+            margin: 100px auto;
+            text-align: center;
+            padding: 40px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border-top: 5px solid #e53e3e;
+        }
+
+        .icon-alert {
+            font-size: 3rem;
+            color: #e53e3e;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+
+        p {
+            color: #718096;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .meta-info {
+            background: #fff5f5;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #c53030;
+            margin-bottom: 30px;
+            border: 1px solid #feb2b2;
+            text-align: left;
+        }
+
+        .btn-logout {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #e2e8f0;
+            color: #4a5568;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: #cbd5e0;
+        }
+    </style>
+</head>
+<body style="background: #f7fafc;">
+    <div class="approval-container">
+        <div class="icon-alert">🚨</div>
+        <h2>High Risk Login Detected</h2>
+        <p>
+            Your identity has been verified via OTP, however, this login was flagged for manual review due to significant contextual anomalies (e.g. unrecognizable device or location).
+        </p>
+
+        <div class="meta-info">
+            <strong>What happens now?</strong><br>
+            A high-severity alert has been sent to the Zero Trust Security team. A supervisor must manually approve your session before you can access the dashboard. 
+            <br><br>
+            <em>Please wait or contact your IT representative.</em>
+        </div>
+
+        <a href="/logout" class="btn-logout">Logout and Try Again</a>
+    </div>
+
+    <script>
+        // Optional: Auto-refresh or check status every 5 seconds
+        setInterval(async () => {
+            try {
+                const res = await fetch('/api/session');
+                const s = await res.json();
+                if (s.loggedIn && s.user && s.user.isApproved !== false) {
+                    window.location.href = '/dashboard';
+                }
+            } catch (e) {}
+        }, 5000);
+    </script>
+</body>
+</html>

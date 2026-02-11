@@ -169,10 +169,10 @@ router.post('/login', loginLimiter, async (req, res) => {
         const rawIp = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.ip || '127.0.0.1';
         const ip = rawIp.split(',')[0].trim().replace('::ffff:', '');
 
-        // 1. Check Working Hours
-        if (!isWithinWorkingHours()) {
-            return res.json({ success: false, message: 'Access denied: Remote work access restricted during off-hours.' });
-        }
+        const currentHour = new Date().getHours();
+        const isUnusualHours = currentHour >= 22 || currentHour < 6;
+        
+        // Removed strict isWithinWorkingHours block, now handled by risk scoring points.
 
         // 2. Check IP Blocklist
         const ipCheck = await checkIPBlockList(ip, username);
@@ -295,11 +295,10 @@ router.post('/login', loginLimiter, async (req, res) => {
         }
 
         // 10. Calculate Risk Score
-        const currentHour = new Date().getHours();
-        const isUnusualHours = currentHour >= 22 || currentHour < 6;
-
         const risk = await calculateRisk({
             userId: user.id,
+            username: user.username,
+            ip: ip,
             isNewDevice: deviceResult.isNew,
             isNewCountry: isNewCountry,
             failedAttempts: user.failed_attempts || 0,
@@ -353,18 +352,18 @@ router.post('/login', loginLimiter, async (req, res) => {
         });
 
         // 13. Adaptive MFA Decision
-        if (risk.score === 0) {
+        if (risk.level === 'Low') {
             req.session.otpVerified = true;
             const csrfToken = generateCSRFToken(req);
 
-            await logEvent(user.id, 'LOGIN_SUCCESS', 'Logged in (Adaptive MFA: OTP Bypassed). Risk: Low (0)', ip);
+            await logEvent(user.id, 'LOGIN_SUCCESS', `Logged in (Adaptive MFA: Low Risk ${risk.score}).`, ip);
             await logSecurityEvent({
                 event_type: 'LOGIN_SUCCESS',
                 user_id: user.id,
                 username: user.username,
                 ip: ip,
                 location: country,
-                risk_score: 0,
+                risk_score: risk.score,
                 details: { risk_level: 'Low', role: user.role, adaptive_mfa: 'bypassed', department: user.department }
             });
 
@@ -372,12 +371,13 @@ router.post('/login', loginLimiter, async (req, res) => {
 
             return res.json({
                 success: true,
-                risk: { score: 0, level: 'Low' },
+                risk: { score: risk.score, level: 'Low' },
                 redirect: '/dashboard',
                 csrfToken: csrfToken
             });
         }
 
+        // Medium or High Risk: Require OTP
         req.session.otpVerified = false;
         await generateOTP(user.id);
 
@@ -402,6 +402,10 @@ router.post('/login', loginLimiter, async (req, res) => {
         console.error('Login error:', err);
         return res.json({ success: false, message: 'Server error. Please try again.' });
     }
+});
+
+router.get('/approval-pending', (req, res) => {
+    res.sendFile('approval-pending.html', { root: 'views' });
 });
 
 router.get('/otp', (req, res) => {
@@ -445,7 +449,22 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
             return res.json({ success: false, message: 'Session invalidated during verification due to concurrent login. Please login again.' });
         }
 
+        if (riskLevel === 'High') {
+            await supabase.from('users').update({ status: 'active_pending_approval' }).eq('id', userId);
+            req.session.otpVerified = true;
+            req.session.isApproved = false;
+            
+            await logEvent(userId, 'LOGIN_HIGH_RISK_PENDING', `OTP verified, but High Risk (${riskScore}) requires admin approval.`, req.ip);
+            
+            return res.json({ 
+                success: true, 
+                message: 'High risk detected. Your login requires administrative approval.',
+                redirect: '/approval-pending'
+            });
+        }
+
         req.session.otpVerified = true;
+        req.session.isApproved = true;
         req.session.lastActive = Date.now();
 
         const csrfToken = generateCSRFToken(req);
@@ -494,7 +513,8 @@ router.get('/api/session', (req, res) => {
             username: req.session.username,
             role: req.session.role,
             department: req.session.department,
-            permissions: getRolePermissions(req.session.role)
+            permissions: getRolePermissions(req.session.role),
+            isApproved: req.session.isApproved
         },
         risk: {
             score: req.session.riskScore,

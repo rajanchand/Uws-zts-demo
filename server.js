@@ -71,8 +71,29 @@ const { requireRole, requirePermission } = require('./middleware/rbac');
 const { flagHighRisk } = require('./middleware/riskCheck');
 const { handleReAuth } = require('./middleware/stepUpAuth');
 
+// Continuous Monitoring & Access Control
+const continuousMonitoring = (req, res, next) => {
+    if (!req.session || !req.session.userId) return next();
+
+    // 1. IP Binding Check
+    const currentIp = (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim().replace('::ffff:', '');
+    if (req.session.loginIP && req.session.loginIP !== currentIp) {
+        console.warn(`[ZTS] IP Change detected for user ${req.session.username}. Session terminated.`);
+        return req.session.destroy(() => res.redirect('/login?reason=ip_change'));
+    }
+
+    // 2. High Risk Approval Check
+    const isPublicRoute = ['/logout', '/approval-pending', '/api/session', '/login'].includes(req.path);
+    if (req.session.otpVerified && req.session.isApproved === false && !isPublicRoute) {
+        return res.redirect('/approval-pending');
+    }
+
+    next();
+};
+
 // Global middleware
 app.use(requireLogin);
+app.use(continuousMonitoring);
 app.use(flagHighRisk);
 app.use(csrfProtection);
 app.use(verifyHMAC);

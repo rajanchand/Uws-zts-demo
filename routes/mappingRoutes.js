@@ -160,6 +160,44 @@ router.post('/api/mapping/devices/approve', requirePermission('approve_devices')
     }
 });
 
+// Approve High Risk Login
+router.post('/api/mapping/users/approve-risk', requireReAuth, requireApprovedDevice, async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!hasPermission(req.session.role, 'manage_users')) {
+            return res.status(403).json({ success: false, message: 'Access denied.' });
+        }
+
+        const { data: user } = await supabase.from('users').select('username, status').eq('id', userId).single();
+        if (!user) return res.json({ success: false, message: 'User not found.' });
+
+        if (user.status !== 'active_pending_approval') {
+            return res.json({ success: false, message: 'User is not currently pending a risk approval.' });
+        }
+
+        const { error } = await supabase
+            .from('users')
+            .update({ status: 'active' })
+            .eq('id', userId);
+
+        if (error) throw error;
+
+        await logEvent(req.session.userId, 'USER_RISK_APPROVED', `Approved high-risk login for: ${user.username}`, req.ip);
+        await logSecurityEvent({
+            event_type: 'USER_RISK_APPROVED',
+            user_id: req.session.userId,
+            username: req.session.username,
+            ip: req.ip,
+            details: { target_user: user.username, target_user_id: userId }
+        });
+
+        res.json({ success: true, message: `Login approved for ${user.username}.` });
+    } catch (err) {
+        console.error('Approve risk error:', err);
+        res.status(500).json({ success: false, message: 'Server error during approval.' });
+    }
+});
+
 // Delete user
 router.post('/api/mapping/users/delete', requireReAuth, requireApprovedDevice, async (req, res) => {
     try {

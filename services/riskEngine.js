@@ -2,12 +2,12 @@ const { supabase } = require('../db');
 const { logSecurityEvent } = require('./monitorService');
 
 const RISK_WEIGHTS = {
-    NEW_DEVICE: 25,
+    NEW_DEVICE: 30,
     NEW_COUNTRY: 30,
-    MULTIPLE_FAILURES: 20, // frequent wrong passwords (formerly FAILED_LOGINS)
-    VPN_ANONYMIZER: 30,    // using a VPN/Proxy (formerly VPN_DETECTED)
-    UNUSUAL_HOURS: 15,     // login outside business hours (remote work remote)
-    ADMIN_UNKNOWN_IP: 40   // admin role from non-whitelisted IP (value changed from 35)
+    MULTIPLE_FAILURES: 20,
+    VPN_ANONYMIZER: 40,
+    UNUSUAL_HOURS: 10,
+    ADMIN_UNKNOWN_IP: 40
 };
 
 function getRiskLevel(score) {
