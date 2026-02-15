@@ -9,18 +9,11 @@ const { validatePassword } = require('../middleware/passwordPolicy');
 const { requireReAuth } = require('../middleware/stepUpAuth');
 const { logSecurityEvent } = require('../services/monitorService');
 
-const { requireRole, requirePermission } = require('../middleware/rbac');
+const { requireRole, requirePermission, hasPermission } = require('../middleware/rbac');
 
-// Helper: check if current user's role has a specific permission from role_permissions.json
-function hasPermission(role, permKey) {
-    if (role === 'SuperAdmin') return true;
-    try {
-        const perms = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'role_permissions.json'), 'utf8'));
-        return !!(perms[role] && perms[role][permKey]);
-    } catch (e) {
-        return false;
-    }
-}
+
+// Centralized hasPermission logic is now imported from RBAC middleware.
+
 
 const router = express.Router();
 

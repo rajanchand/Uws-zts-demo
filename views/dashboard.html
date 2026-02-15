@@ -102,11 +102,8 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
+            background: #dfe6e9;
             flex-shrink: 0;
-        }
-
-        .event-dot.green {
-            background: #27ae60;
         }
 
         .event-dot.red {
@@ -117,147 +114,103 @@
             background: #e67e22;
         }
 
+        .event-dot.green {
+            background: #27ae60;
+        }
+
         .event-dot.blue {
             background: #0984e3;
         }
 
-        .event-dot.grey {
-            background: #b2bec3;
+        .event-time {
+            color: #b2bec3;
+            font-size: 0.7rem;
+            min-width: 50px;
         }
 
-        .event-action {
-            font-weight: 600;
-            min-width: 140px;
-        }
-
-        .event-detail {
-            color: #636e72;
-            flex: 1;
+        .event-msg {
+            color: #2d3436;
+            flex-grow: 1;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .event-time {
-            color: #aaa;
-            font-size: 0.72rem;
-            white-space: nowrap;
+        /* actions icons */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
         }
 
-        /* role breakdown */
-        .role-row {
+        .action-item {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: space-between;
-            padding: 7px 0;
-            border-bottom: 1px solid #f5f5f5;
-            font-size: 0.83rem;
+            justify-content: center;
+            padding: 12px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border: 1px solid #eee;
+            color: #2d3436;
+            text-decoration: none;
+            transition: all 0.2s;
+            text-align: center;
         }
 
-        .role-row:last-child {
-            border-bottom: none;
+        .action-item:hover {
+            background: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            border-color: #0984e3;
+            transform: translateY(-2px);
         }
 
-        .role-bar-wrap {
-            flex: 1;
-            margin: 0 12px;
-            background: #f0f0f0;
+        .action-item i {
+            font-size: 1.4rem;
+            margin-bottom: 6px;
+        }
+
+        .action-item div {
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+
+        /* RISK meter  */
+        .risk-gauge {
+            width: 100%;
+            height: 8px;
+            background: #eee;
             border-radius: 4px;
-            height: 6px;
+            margin: 10px 0;
             overflow: hidden;
         }
 
-        .role-bar {
+        .risk-fill {
             height: 100%;
             border-radius: 4px;
-            background: #0984e3;
+            transition: width 0.5s ease;
         }
 
-        .role-count {
-            font-weight: 600;
-            min-width: 20px;
-            text-align: right;
-            color: #2d3436;
+        .risk-low { background: #27ae60; }
+        .risk-med { background: #e67e22; }
+        .risk-high { background: #e74c3c; }
+
+        .hidden {
+            display: none !important;
         }
 
-        /* quick actions */
-        .actions-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        .action-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 12px;
-            background: #f8f9fa;
-            border: 1px solid #eee;
-            border-radius: 6px;
-            cursor: pointer;
-            text-decoration: none;
-            color: #2d3436;
-            font-size: 0.82rem;
-            font-weight: 500;
-            transition: background 0.15s, border-color 0.15s;
-        }
-
-        .action-btn:hover {
-            background: #edf5ff;
-            border-color: #0984e3;
-            color: #0984e3;
-        }
-
-        .action-btn .action-icon {
-            font-size: 1rem;
-        }
-
-        /* alert banner */
+        /* Alert banner */
         .alert-banner {
-            background: #fff8e7;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
+            background: #fff5f5;
+            color: #c53030;
             padding: 12px 16px;
-            margin-bottom: 14px;
+            border-radius: 8px;
+            border-left: 4px solid #f56565;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
             display: flex;
             align-items: center;
             gap: 10px;
-            font-size: 0.84rem;
-            color: #856404;
-        }
-
-        .alert-banner.hidden {
-            display: none;
-        }
-
-        .alert-banner strong {
-            font-weight: 700;
-        }
-
-        @media (max-width: 900px) {
-            .kpi-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .kpi-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 8px;
-            }
-
-            .kpi-value {
-                font-size: 1.3rem;
-            }
-
-            .actions-grid {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
 </head>
@@ -271,22 +224,7 @@
     </nav>
 
     <div class="container">
-        <!-- Welcome Banner -->
-        <div class="card" style="padding: 18px 24px; margin-bottom: 20px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <h2 id="greetingText" style="font-size:1rem; margin-bottom:2px;"></h2>
-                    <p style="font-size:0.82rem; color:#636e72; margin:0;">
-                        Zero Trust Security · NIST SP 800-207 · <span id="currentTime"></span>
-                    </p>
-                </div>
-                <div style="text-align:right;">
-                    <div style="font-size:0.75rem; color:#636e72;">Your Risk Score</div>
-                    <div id="myRiskBadge" style="font-size:1.1rem; font-weight:700;"></div>
-                </div>
-            </div>
-        </div>
-
+        <!-- Alert Banner -->
         <div id="alertBanner" class="alert-banner hidden">
             <strong>Attention:</strong> <span id="alertText"></span>
         </div>
@@ -298,20 +236,66 @@
 
         <!-- Main Content -->
         <div class="dashboard-grid">
-            <!-- Quick Actions -->
+
+            <!-- Primary Column -->
             <div>
+                <!-- Risk Monitoring (User view or summary) -->
+                <div class="card" id="mySecurityCard">
+                    <h3>Your Contextual Risk</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px;">
+                        <div>
+                            <div class="kpi-label">Current Risk Score</div>
+                            <div id="myRiskValue" class="kpi-value">—</div>
+                        </div>
+                        <div id="myRiskLevel" class="role-badge">—</div>
+                    </div>
+                    <div class="risk-gauge">
+                        <div id="myRiskProgress" class="risk-fill" style="width: 0%"></div>
+                    </div>
+                    <div style="font-size: 0.75rem; color: #636e72; line-height: 1.6;" id="myRiskFactors">
+                        Loading security context...
+                    </div>
+                </div>
+
+                <!-- Recent Events -->
                 <div class="card">
-                    <h3>Quick Actions</h3>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <h3 style="margin:0;">Recent Security Events</h3>
+                        <a href="/live-monitoring" class="btn btn-outline btn-sm" id="liveMonitorBtn">Live Monitor</a>
+                    </div>
+                    <div id="recentEvents">
+                        <p style="color:#aaa; font-size:0.82rem; text-align:center; padding:20px;">Fetching logs...</p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions Block -->
+                <div id="actionCard" class="card">
+                    <h3>Quick Administration</h3>
                     <div class="actions-grid" id="quickActions">
                         <!-- filled by JS -->
                     </div>
                 </div>
             </div>
 
-            <!-- Sidebar -->
+            <!-- Sidebar Column -->
             <div>
+                <!-- Academic Insight Sidebar (Distinction Item) -->
+                <div class="card" style="background: #f0f7ff; border: 1px solid #c2e0ff; margin-bottom: 12px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 0.85rem; color: #0c4a6e; text-transform: uppercase;">NIST SP 800-207 Insight</h4>
+                    <div style="font-size: 0.78rem; color: #075985; line-height: 1.5;">
+                        <p><strong>PEP:</strong> Middleware validates Identity & Device on every request.</p>
+                        <hr style="margin: 8px 0; border: 0; border-top: 1px solid #cbd5e1;">
+                        <p><strong>PE:</strong> The <strong>Risk Engine</strong> calculates trust using behavioral scores.</p>
+                        <hr style="margin: 8px 0; border: 0; border-top: 1px solid #cbd5e1;">
+                        <p><strong>PIP:</strong> Monitoring logs feed the state to the decision engine.</p>
+                    </div>
+                    <div style="margin-top: 12px; font-size: 0.7rem;">
+                        <a href="https://csrc.nist.gov/pubs/sp/800/207/final" target="_blank" style="color: #0984e3; text-decoration: none;">Reference Documents →</a>
+                    </div>
+                </div>
+
                 <!-- Role Breakdown -->
-                <div class="card">
+                <div class="card" id="roleCard">
                     <h3>Users by Role</h3>
                     <div id="roleBreakdown">
                         <p style="color:#aaa; font-size:0.82rem;">Loading...</p>
@@ -322,199 +306,184 @@
                 <div class="card">
                     <h3>Your Session</h3>
                     <div id="sessionInfo" style="font-size:0.83rem; line-height:1.9;">
-                        <p style="color:#aaa;">Loading...</p>
+                        <!-- filled by JS -->
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Security Events -->
-        <div class="card">
-            <div class="card-header-row" style="display:flex; justify-content:space-between; margin-bottom: 16px;">
-                <h3>Recent Security Events</h3>
-                <a href="/admin/live-monitoring" style="font-size:0.78rem; color:#0984e3; text-decoration:none;">View
-                    Live Monitor &rarr;</a>
-            </div>
-            <div id="eventsLog">
-                <p style="color:#aaa; font-size:0.82rem;">Loading...</p>
-            </div>
         </div>
-
-    </div><!-- end container -->
+    </div>
 
     <script src="/js/app.js?v=2"></script>
     <script>
-
-        // update current time every second
-        function updateClock() {
-            var now = new Date();
-            document.getElementById('currentTime').textContent =
-                now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) +
-                ' · ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        }
-        updateClock();
-        setInterval(updateClock, 1000);
-
-        // returns a greeting based on time of day
-        function getGreeting() {
-            var h = new Date().getHours();
-            if (h < 12) return 'Good morning';
-            if (h < 17) return 'Good afternoon';
-            return 'Good evening';
-        }
-
-        // get colour for event dot based on action name
-        function eventDotClass(action) {
-            if (!action) return 'grey';
-            action = action.toUpperCase();
-            if (action.includes('FAIL') || action.includes('BLOCK') || action.includes('DENY')) return 'red';
-            if (action.includes('SUCCESS') || action.includes('ACTIVE')) return 'green';
-            if (action.includes('OTP') || action.includes('DEVICE')) return 'orange';
-            return 'blue';
-        }
-
-        // build the KPI cards
-        function buildKPIs(d) {
-            var grid = document.getElementById('kpiGrid');
-            var kpis = [
-                { label: 'Total Users', value: d.users.total, colour: 'blue', sub: d.users.active + ' active' },
-                { label: 'Blocked Users', value: d.users.blocked, colour: 'red', sub: 'requires review' },
-                { label: 'Pending Devices', value: d.devices.pendingApproval, colour: 'orange', sub: 'awaiting approval' },
-                { label: 'Events (24h)', value: d.activity.events24h, colour: 'teal', sub: 'all event types' },
-                { label: 'Login Failures', value: d.activity.loginFails24h, colour: d.activity.loginFails24h > 3 ? 'red' : 'green', sub: 'last 24 hours' },
-                { label: 'Total Sessions', value: d.activity.totalSessions, colour: 'purple', sub: 'all time' }
-            ];
-
-            grid.innerHTML = kpis.map(function (k) {
-                return '<div class="kpi-card ' + k.colour + '">' +
-                    '<div>' +
-                    '<div class="kpi-label">' + k.label + '</div>' +
-                    '<div class="kpi-value">' + k.value + '</div>' +
-                    '<div class="kpi-sub">' + k.sub + '</div>' +
-                    '</div>' +
-                    '</div>';
-            }).join('');
-        }
-
-        // build recent event rows
-        function buildEvents(events) {
-            var container = document.getElementById('eventsLog');
-            if (!events || !events.length) {
-                container.innerHTML = '<p style="color:#aaa; font-size:0.82rem;">No recent events.</p>';
-                return;
-            }
-            container.innerHTML = events.map(function (e) {
-                return '<div class="event-row">' +
-                    '<div class="event-dot ' + eventDotClass(e.action) + '"></div>' +
-                    '<div class="event-action">' + (e.action || '-') + '</div>' +
-                    '<div class="event-detail">' + (e.detail || '-') + '</div>' +
-                    '<div class="event-time">' + formatDate(e.created_at) + '</div>' +
-                    '</div>';
-            }).join('');
-        }
-
-        // build role breakdown bar chart
-        function buildRoleBreakdown(roleMap, total) {
-            var container = document.getElementById('roleBreakdown');
-            var roles = Object.keys(roleMap);
-            if (!roles.length) {
-                container.innerHTML = '<p style="color:#aaa; font-size:0.82rem;">No data.</p>';
-                return;
-            }
-            container.innerHTML = roles.map(function (role) {
-                var count = roleMap[role];
-                var pct = total > 0 ? Math.round((count / total) * 100) : 0;
-                return '<div class="role-row">' +
-                    '<span style="min-width:110px; font-size:0.8rem;">' + role + '</span>' +
-                    '<div class="role-bar-wrap"><div class="role-bar" style="width:' + pct + '%"></div></div>' +
-                    '<span class="role-count">' + count + '</span>' +
-                    '</div>';
-            }).join('');
-        }
-
-        // main load function
-        async function loadDashboard() {
+        /**
+         * initDashboard: Loads all data required for the main dashboard view.
+         * Distinguishes between Admin and User views.
+         */
+        async function init() {
             try {
-                // load personal session data
-                var res = await fetch('/api/dashboard-data');
-                var d = await res.json();
+                const res = await fetch('/api/dashboard-data');
+                const data = await res.json();
 
-                buildNavbar(d.user.role, 'dashboard', d.user.username, d.user.permissions);
-
-                // greeting
-                document.getElementById('greetingText').textContent =
-                    getGreeting() + ', ' + d.user.username + ' · ' + d.user.role;
-
-                // personal risk badge
-                var risk = d.security;
-                var riskEl = document.getElementById('myRiskBadge');
-                riskEl.textContent = risk.riskScore + ' / 100 · ' + risk.riskLevel;
-                riskEl.className = risk.riskLevel === 'Low' ? 'score-low' : risk.riskLevel === 'Medium' ? 'score-medium' : 'score-high';
-
-                // session info sidebar
-                document.getElementById('sessionInfo').innerHTML =
-                    '<div><strong>Role:</strong> ' + d.user.role + '</div>' +
-                    '<div><strong>Department:</strong> ' + (d.user.department || '-') + '</div>' +
-                    '<div><strong>Login Country:</strong> ' + (d.security.loginContext.country || '-') + '</div>' +
-                    '<div><strong>Device:</strong> ' + (d.security.loginContext.isNewDevice ? 'New (unrecognised)' : 'Known') + '</div>' +
-                    '<div><strong>Sessions:</strong> ' + d.security.sessionCount + '</div>';
-
-                // build quick actions
-                var actions = [
-                    { label: 'My Profile', link: '/profile' },
-                    { label: 'Risk Score', link: '/risk' }
-                ];
-
-                if (d.user.permissions.includes('manage_users') || d.user.permissions.includes('manage_depts')) {
-                    actions.unshift({ label: 'User Management', link: '/mapping' });
-                }
-                if (d.user.permissions.includes('approve_devices')) {
-                    actions.push({ label: 'Device Registry', link: '/register-device' });
-                }
-                if (d.user.permissions.includes('view_monitoring')) {
-                    actions.push({ label: 'Live Monitor', link: '/admin/live-monitoring' });
-                }
-                if (d.user.permissions.includes('manage_network')) {
-                    actions.push({ label: 'IP Rules', link: '/network' });
+                if (!data.user) {
+                    location.href = '/login';
+                    return;
                 }
 
-                document.getElementById('quickActions').innerHTML = actions.map(function(a) {
-                    return '<a href="' + a.link + '" class="action-btn">' + a.label + '</a>';
-                }).join('');
-
-                // load admin stats if user has any administrative permission
-                var hasAdminStats = d.user.permissions.includes('manage_users') || 
-                                    d.user.permissions.includes('view_monitoring') || 
-                                    d.user.permissions.includes('analyze_risk');
-                if (hasAdminStats) {
-                    var statsRes = await fetch('/api/admin-stats');
-                    var stats = await statsRes.json();
-
-                    buildKPIs(stats);
-                    buildEvents(stats.recentEvents);
-                    buildRoleBreakdown(stats.roleBreakdown, stats.users.total);
-
-                    // show alert if there are pending devices or many login failures
-                    var alerts = [];
-                    if (stats.devices.pendingApproval > 0) {
-                        alerts.push(stats.devices.pendingApproval + ' device(s) are waiting for approval.');
-                    }
-                    if (stats.activity.loginFails24h > 5) {
-                        alerts.push(stats.activity.loginFails24h + ' login failures in the last 24 hours — possible brute force.');
-                    }
-                    if (alerts.length) {
-                        document.getElementById('alertText').textContent = alerts.join(' ');
-                        document.getElementById('alertBanner').classList.remove('hidden');
-                    }
+                buildNavbar(data.user.role, 'dashboard', data.user.username, data.user.permissions);
+                
+                // Show/Hide admin-only components
+                if (data.user.role !== 'SuperAdmin' && data.user.role !== 'IT') {
+                    if (document.getElementById('kpiGrid')) document.getElementById('kpiGrid').classList.add('hidden');
+                    if (document.getElementById('actionCard')) document.getElementById('actionCard').classList.add('hidden');
+                    if (document.getElementById('roleCard')) document.getElementById('roleCard').classList.add('hidden');
+                    if (document.getElementById('liveMonitorBtn')) document.getElementById('liveMonitorBtn').style.display = 'none';
                 }
 
-            } catch (e) {
-                console.error('Dashboard load error:', e);
-                location.href = '/login';
+                renderKPI(data.stats);
+                renderUserRisk(data.user, data.risk);
+                renderRecentEvents(data.recent_events);
+                renderRoleStats(data.role_stats);
+                renderSessionInfo(data);
+                renderQuickActions(data.user.permissions);
+
+                // High Risk Warning Banner
+                if (data.risk && data.risk.level === 'High') {
+                    document.getElementById('alertBanner').classList.remove('hidden');
+                    document.getElementById('alertText').textContent = 'Your current session risk is HIGH. Administrative actions may be restricted.';
+                }
+
+            } catch (err) {
+                console.error('Dashboard Load Error:', err);
             }
         }
 
-        loadDashboard();
+        function renderKPI(stats) {
+            const grid = document.getElementById('kpiGrid');
+            if (!grid || !stats) return;
+            grid.innerHTML = `
+                <div class="kpi-card blue">
+                    <div class="kpi-icon">👥</div>
+                    <div>
+                        <div class="kpi-label">Total Users</div>
+                        <div class="kpi-value">${stats.total_users || 0}</div>
+                    </div>
+                </div>
+                <div class="kpi-card teal">
+                    <div class="kpi-icon">⚡</div>
+                    <div>
+                        <div class="kpi-label">Active (24h)</div>
+                        <div class="kpi-value">${stats.active_24h || 0}</div>
+                    </div>
+                </div>
+                <div class="kpi-card orange">
+                    <div class="kpi-icon">🛡️</div>
+                    <div>
+                        <div class="kpi-label">Risks Deflected</div>
+                        <div class="kpi-value">${stats.blocked_ips || 0}</div>
+                    </div>
+                </div>
+                <div class="kpi-card red">
+                    <div class="kpi-icon">⚠️</div>
+                    <div>
+                        <div class="kpi-label">Failed Logins</div>
+                        <div class="kpi-value">${stats.failed_logins || 0}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderUserRisk(user, risk) {
+            if (!risk) return;
+            document.getElementById('myRiskValue').textContent = risk.score;
+            document.getElementById('myRiskLevel').textContent = risk.level;
+            
+            const fill = document.getElementById('myRiskProgress');
+            fill.className = 'risk-fill risk-' + risk.level.toLowerCase().substring(0,3);
+            fill.style.width = risk.score + '%';
+
+            const factorsEl = document.getElementById('myRiskFactors');
+            if (risk.factors && risk.factors.length > 0) {
+                factorsEl.innerHTML = '<strong>Risk Factors:</strong><br>' + 
+                    risk.factors.map(f => `• ${f.factor} (${f.points > 0 ? '+' : ''}${f.points})`).join('<br>');
+            } else {
+                factorsEl.innerHTML = 'No significant risk factors detected for this session.';
+            }
+        }
+
+        function renderRecentEvents(events) {
+            const container = document.getElementById('recentEvents');
+            if (!events || events.length === 0) {
+                container.innerHTML = '<p style="color:#aaa; text-align:center; padding:10px;">No security events logged.</p>';
+                return;
+            }
+            container.innerHTML = events.map(e => {
+                let dotClass = 'blue';
+                if (['LOGIN_FAILED', 'ACCESS_DENIED', 'USER_BLOCKED'].includes(e.event_type)) dotClass = 'red';
+                if (['VPN_DETECTED', 'DEVICE_NEW', 'RISK_SCORE_CHANGED'].includes(e.event_type)) dotClass = 'orange';
+                if (['LOGIN_SUCCESS', 'OTP_SUCCESS'].includes(e.event_type)) dotClass = 'green';
+
+                return `
+                    <div class="event-row">
+                        <div class="event-time">${new Date(e.timestamp).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'})}</div>
+                        <div class="event-dot ${dotClass}"></div>
+                        <div class="event-msg"><strong>${e.username}</strong>: ${e.event_type.replace(/_/g,' ')}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderRoleStats(stats) {
+            const container = document.getElementById('roleBreakdown');
+            if (!stats || !container) return;
+            container.innerHTML = stats.map(s => `
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.82rem;">
+                    <span>${s.role}</span>
+                    <span class="role-badge" style="background:#eee; color:#2d3436;">${s.count}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderSessionInfo(data) {
+            const container = document.getElementById('sessionInfo');
+            const user = data.user;
+            const risk = data.risk;
+            const sec = data.security;
+
+            container.innerHTML = `
+                <div><strong>Identity:</strong> ${user.username}</div>
+                <div><strong>Network:</strong> ${data.ip || 'Unknown'}</div>
+                <div><strong>Location:</strong> ${data.country || 'Unknown'}</div>
+                <div><strong>Policy Check:</strong> ${risk.level === 'High' ? '⚠️ Strict' : '✅ Standard'}</div>
+                <div style="margin-top:5px;">
+                    <span class="role-badge">${sec.deviceBound ? 'Device-Bound' : 'Loose Session'}</span>
+                    <span class="role-badge">${sec.sessionToken === 'active' ? 'Tokenized' : 'Legacy'}</span>
+                </div>
+            `;
+        }
+
+        function renderQuickActions(perms) {
+            const container = document.getElementById('quickActions');
+            if (!container) return;
+            let html = '';
+
+            if (perms.includes('manage_users')) {
+                html += `<a href="/mapping" class="action-item"><i>👤</i><div>Users</div></a>`;
+            }
+            if (perms.includes('view_monitoring')) {
+                html += `<a href="/live-monitoring" class="action-item"><i>📡</i><div>Monitor</div></a>`;
+            }
+            if (perms.includes('analyze_risk')) {
+                html += `<a href="/risk" class="action-item"><i>📊</i><div>Risk</div></a>`;
+            }
+            if (perms.includes('manage_network')) {
+                html += `<a href="/network" class="action-item"><i>🌐</i><div>Network</div></a>`;
+            }
+
+            container.innerHTML = html || '<p style="color:#aaa; font-size:0.75rem;">No administrative actions permited.</p>';
+        }
+
+        init();
     </script>
 </body>
 

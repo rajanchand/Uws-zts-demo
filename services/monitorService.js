@@ -1,4 +1,8 @@
-// services/monitorService.js
+/**
+ * ZTS ARCHITECTURE: POLICY INFORMATION POINT (PIP) NIST MODEL SP 800-207 model
+ * It collects, logs, and broadcasts the environmental and contextual 
+ * data needed by the Policy Engine to evaluate risk.
+ */
 
 const { supabase } = require('../db');
 

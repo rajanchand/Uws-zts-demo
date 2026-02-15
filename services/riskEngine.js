@@ -1,5 +1,11 @@
+/**
+ * ZTS ARCHITECTURE: POLICY ENGINE (PE)
+ * This engine maps directly to the NIST SP 800-207 "Policy Engine."
+ * It evaluates user, device, and environmental attributes to 
+ * determine a real-time risk score and access decision.
+ */
+
 const { supabase } = require('../db');
-const { logSecurityEvent } = require('./monitorService');
 
 const RISK_WEIGHTS = {
     NEW_DEVICE: 30,
@@ -7,20 +13,28 @@ const RISK_WEIGHTS = {
     MULTIPLE_FAILURES: 20,
     VPN_ANONYMIZER: 40,
     UNUSUAL_HOURS: 10,
-    ADMIN_UNKNOWN_IP: 40
+    ADMIN_UNKNOWN_IP: 40,
+    IMPOSSIBLE_TRAVEL: 60,   // Distinction item: High-velocity travel detected
+    OFFICE_REWARD: -20       // Distinction item: Subtracted if from corporate IP
 };
 
 function getRiskLevel(score) {
-    if (score <= 30) return 'Low';
-    if (score <= 60) return 'Medium';
+    if (score <= 20) return 'Low'; // Standard office login should be very low
+    if (score <= 55) return 'Medium';
     return 'High';
 }
 
 // Calculate dynamically requested risk
-// params: { userId, isNewDevice, isNewCountry, failedAttempts, isVPN, isAdminUnknownIP, role, isUnusualHours }
+// params: { userId, isNewDevice, isNewCountry, failedAttempts, isVPN, isAdminUnknownIP, role, isUnusualHours, isImpossibleTravel, isOfficeIP }
 async function calculateRisk(params) {
     let score = 0;
     const factors = [];
+
+    // 0. Network Reliability (Distinction Feature)
+    if (params.isOfficeIP) {
+        score += RISK_WEIGHTS.OFFICE_REWARD;
+        factors.push({ factor: 'Secure Corporate Network', points: RISK_WEIGHTS.OFFICE_REWARD });
+    }
 
     // 1. Device Trust
     if (params.isNewDevice) {
@@ -58,7 +72,15 @@ async function calculateRisk(params) {
         factors.push({ factor: 'Login outside typical business hours', points: RISK_WEIGHTS.UNUSUAL_HOURS });
     }
 
+    // 7. Behavioral Anomaly: Impossible Travel (Distinction Feature)
+    if (params.isImpossibleTravel) {
+        score += RISK_WEIGHTS.IMPOSSIBLE_TRAVEL;
+        factors.push({ factor: 'Impossible Travel (Velocity Violation)', points: RISK_WEIGHTS.IMPOSSIBLE_TRAVEL });
+    }
+
+    // Handle score bounds
     if (score > 100) score = 100;
+    if (score < 0) score = 0;
 
     const level = getRiskLevel(score);
 

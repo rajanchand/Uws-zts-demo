@@ -1,36 +1,11 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const { supabase } = require('../db');
-const { getRiskHistory, getAllRiskHistory } = require('../services/riskEngine');
 const { getUserAuditLog } = require('../services/auditService');
 const { getDeviceHealth } = require('../services/deviceService');
+const { hasPermission, getRolePermissions } = require('../middleware/rbac');
 
 const router = express.Router();
 
-// Helper: check if current user's role has a specific permission
-function hasPermission(role, permKey) {
-    if (role === 'SuperAdmin') return true;
-    try {
-        const perms = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'role_permissions.json'), 'utf8'));
-        return !!(perms[role] && perms[role][permKey]);
-    } catch (e) {
-        return false;
-    }
-}
 
-// Helper to get permissions array for a role
-function getRolePermissionsArray(role) {
-    if (role === 'SuperAdmin') return ['manage_users', 'delete_users', 'reset_passwords', 'approve_devices', 'manage_depts', 'view_monitoring', 'analyze_risk', 'manage_network', 'view_posture'];
-    try {
-        const permsJSON = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'role_permissions.json'), 'utf8'));
-        const rolePerms = permsJSON[role] || {};
-        return Object.keys(rolePerms).filter(k => rolePerms[k]);
-    } catch (e) {
-        return [];
-    }
-}
-
+// Dashboard content mapping for different roles
 const dashboardContent = {
     SuperAdmin: {
         title: 'Super Admin Control Centre',
@@ -122,7 +97,7 @@ router.get('/api/dashboard-data', async (req, res) => {
                 username: req.session.username,
                 role: req.session.role,
                 department: req.session.department,
-                permissions: getRolePermissionsArray(req.session.role)
+                permissions: getRolePermissions(req.session.role)
             },
             dashboard: {
                 title: content.title,

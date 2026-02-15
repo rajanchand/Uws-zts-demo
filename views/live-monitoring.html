@@ -1,270 +1,222 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Monitoring - ZTS</title>
+    <title>SOC Security Monitor - ZTS</title>
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        /* live monitoring  */
+        :root {
+            --soc-bg: #f8fafc;
+            --soc-card: #ffffff;
+            --soc-accent: #0984e3;
+            --soc-border: #e2e8f0;
+            --soc-text: #2d3436;
+            --soc-muted: #64748b;
+        }
 
-        .live-header {
+        body {
+            background-color: var(--soc-bg);
+            color: var(--soc-text);
+        }
+
+        .soc-grid {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .soc-header {
+            background: #fff;
+            padding: 20px;
+            border-bottom: 1px solid var(--soc-border);
+            margin-bottom: 20px;
+            border-radius: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 14px;
-            flex-wrap: wrap;
-            gap: 10px;
         }
 
-        .live-header h3 {
-            margin: 0;
-            font-size: 0.9rem;
-            color: #636e72;
+        /* Metric Cards */
+        .metric-group {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
-        .live-controls {
+        .metric-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--soc-border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--soc-accent);
+        }
+
+        .metric-card.critical::after { background: #e74c3c; }
+        .metric-card.warning::after { background: #f39c12; }
+        .metric-card.success::after { background: #27ae60; }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--soc-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        /* Threat Map Placeholder */
+        .threat-map-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--soc-border);
+            height: 300px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .map-placeholder {
+            flex-grow: 1;
+            background: #f1f5f9;
+            border-radius: 8px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
+            justify-content: center;
+            color: #94a3b8;
+            border: 1px dashed #cbd5e1;
+            position: relative;
         }
 
-        /* live status indicator */
-        .live-badge {
+        /* Live Feed */
+        .live-feed-card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid var(--soc-border);
+            overflow: hidden;
+        }
+
+        .feed-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--soc-border);
+            background: #f8fafc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .feed-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .feed-table th {
+            text-align: left;
+            padding: 12px 20px;
+            background: #fff;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--soc-muted);
+            border-bottom: 1px solid var(--soc-border);
+        }
+
+        .feed-table td {
+            padding: 12px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.85rem;
+        }
+
+        /* Status Indicator */
+        .status-pill {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 600;
-            background: #edf5ff;
-            color: #0984e3;
-            border: 1px solid #b2d4f5;
+            background: #f1f5f9;
         }
 
-        .live-badge .dot {
-            width: 7px;
-            height: 7px;
+        .status-pill .dot {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: #27ae60;
-            animation: blink 1.2s infinite;
         }
 
-        .live-badge.offline {
-            background: #fdf3f2;
-            color: #e74c3c;
-            border-color: #f5c0bb;
+        .status-pill.live .dot {
+            animation: pulse-green 1.5s infinite;
         }
 
-        .live-badge.offline .dot {
-            background: #e74c3c;
-            animation: none;
+        @keyframes pulse-green {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(39, 174, 96, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
         }
 
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        /* KPI stats row */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 10px;
-            margin-bottom: 14px;
-        }
-
-        .stat-card {
+        /* Multi-column layout */
+        .academic-sidebar {
             background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--soc-border);
+            height: fit-content;
+        }
+
+        .nist-card {
+            padding: 15px;
+            background: #f0f7ff;
             border-radius: 8px;
-            padding: 14px 16px;
-            border-left: 3px solid #0984e3;
+            border-left: 4px solid #0984e3;
+            margin-bottom: 15px;
         }
 
-        .stat-card.red   { border-color: #e74c3c; }
-        .stat-card.orange { border-color: #e67e22; }
-        .stat-card.green  { border-color: #27ae60; }
-        .stat-card.purple { border-color: #8e44ad; }
-
-        .stat-value {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: #2d3436;
-        }
-
-        .stat-label {
-            font-size: 0.72rem;
-            color: #636e72;
-            margin-top: 2px;
-        }
-
-        /* filter bar */
-        .filter-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-
-        .filter-bar label {
-            font-size: 0.8rem;
-            color: #636e72;
-            font-weight: 500;
-        }
-
-        .filter-bar select,
-        .filter-bar input {
-            padding: 6px 10px;
-            border: 1px solid #dfe6e9;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            color: #2d3436;
-            background: #fff;
-        }
-
-        .filter-bar select:focus,
-        .filter-bar input:focus {
-            outline: none;
-            border-color: #0984e3;
-        }
-
-        .evt-count {
-            margin-left: auto;
-            font-size: 0.78rem;
-            color: #636e72;
-        }
-
-        /* event table */
-        .event-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.82rem;
-            min-width: 700px;
-        }
-
-        .event-table thead th {
-            text-align: left;
-            padding: 9px 10px;
-            border-bottom: 2px solid #eee;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            color: #636e72;
-            letter-spacing: 0.03em;
-            white-space: nowrap;
-            background: #fff;
-        }
-
-        .event-table tbody td {
-            padding: 9px 10px;
-            border-bottom: 1px solid #f0f0f0;
-            vertical-align: middle;
-        }
-
-        .event-table tbody tr:hover td {
-            background: #fafafa;
-        }
-
-        /* slide-in animation for new rows */
-        .event-table tbody tr.new {
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from { background: #edf5ff; }
-            to   { background: transparent; }
-        }
-
-        /* severity chips */
-        .sev {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-        }
-
-        .sev-CRITICAL { background: #fadbd8; color: #c0392b; }
-        .sev-HIGH     { background: #fdebd0; color: #d35400; }
-        .sev-MEDIUM   { background: #fef9e7; color: #d4a017; }
-        .sev-LOW      { background: #eafaf1; color: #27ae60; }
-        .sev-INFO     { background: #edf5ff; color: #0984e3; }
-
-        /* event type coloring */
-        .evt-type {
-            font-family: monospace;
-            font-size: 0.78rem;
-            font-weight: 600;
-        }
-
-        .evt-LOGIN_SUCCESS,
-        .evt-OTP_SUCCESS,
-        .evt-USER_UNBLOCKED   { color: #27ae60; }
-
-        .evt-LOGIN_FAILED,
-        .evt-OTP_FAILED,
-        .evt-USER_DELETED,
-        .evt-USER_BLOCKED      { color: #e74c3c; }
-
-        .evt-ACCESS_DENIED,
-        .evt-IMPOSSIBLE_TRAVEL { color: #c0392b; font-weight: 700; }
-
-        .evt-OTP_SENT,
-        .evt-DEVICE_NEW,
-        .evt-LOCATION_NEW      { color: #0984e3; }
-
-        .evt-VPN_DETECTED,
-        .evt-FORCE_LOGOUT      { color: #e67e22; }
-
-        .evt-ROLE_CHANGED,
-        .evt-RISK_SCORE_CHANGED,
-        .evt-USER_CREATED       { color: #8e44ad; }
-
-        /* risk number */
-        .risk-num {
-            display: inline-block;
-            padding: 1px 7px;
-            border-radius: 4px;
-            font-size: 0.78rem;
-            font-weight: 600;
-        }
-
-        .risk-num.low  { background: #eafaf1; color: #27ae60; }
-        .risk-num.med  { background: #fdebd0; color: #e67e22; }
-        .risk-num.high { background: #fadbd8; color: #e74c3c; }
-
-        .ts-cell {
-            color: #636e72;
-            font-size: 0.75rem;
-            white-space: nowrap;
-        }
-
-        .ip-cell {
-            font-family: monospace;
-            font-size: 0.78rem;
-            color: #636e72;
-        }
-
-        .details-cell {
-            color: #636e72;
-            font-size: 0.75rem;
-            max-width: 240px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .empty-msg {
-            text-align: center;
-            padding: 40px;
-            color: #b2bec3;
+        .nist-card h4 {
+            margin: 0 0 8px 0;
             font-size: 0.85rem;
+            color: #0c4a6e;
         }
+
+        .nist-card p {
+            margin: 0;
+            font-size: 0.78rem;
+            line-height: 1.4;
+            color: #075985;
+        }
+
+        .type-chip {
+            font-family: monospace;
+            font-weight: 600;
+            color: #0984e3;
+        }
+        
+        .type-chip.critical { color: #e74c3c; }
+        .type-chip.warning { color: #f39c12; }
+
     </style>
 </head>
+
 <body>
     <nav class="navbar">
         <button class="menu-toggle" aria-label="Toggle menu">☰</button>
@@ -273,338 +225,223 @@
         <div class="user-menu" id="userMenu"></div>
     </nav>
 
-    <div class="container">
-
-        <!-- Page header -->
-        <div class="live-header">
+    <div class="container" style="max-width: 1200px;">
+        
+        <div class="soc-header">
             <div>
-                <h2 style="font-size: 1rem; margin-bottom: 2px;">Live Security Monitoring</h2>
-                <p style="font-size: 0.78rem; color: #636e72; margin: 0;">Real-time event stream — NIST SP 800-207</p>
+                <h1 style="font-size: 1.4rem; margin: 0; color: #1e293b;">Security Operations Center</h1>
+                <p style="margin: 4px 0 0 0; color: var(--soc-muted); font-size: 0.9rem;">Policy Information Point (PIP) - Comprehensive Event Stream</p>
             </div>
-            <div class="live-controls">
-                <div id="liveBadge" class="live-badge">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <div class="status-pill live" id="liveBadge">
                     <div class="dot"></div>
-                    <span id="liveStatus">Connecting...</span>
+                    <span id="liveStatus">System Online</span>
                 </div>
-                <button class="btn btn-outline btn-sm" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
-                <button class="btn btn-outline btn-sm" onclick="clearStream()">Clear</button>
-                <a href="/dashboard" class="btn btn-outline btn-sm">← Dashboard</a>
+                <button class="btn btn-outline btn-sm" onclick="clearFeed()">Clear Feed</button>
             </div>
         </div>
 
-        <!-- KPI stats -->
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-value" id="statTotal">—</div>
-                <div class="stat-label">Total Events (24h)</div>
+        <div class="metric-group">
+            <div class="metric-card">
+                <div class="metric-value" id="statTotal">—</div>
+                <div class="metric-label">Total Logs (24h)</div>
             </div>
-            <div class="stat-card red">
-                <div class="stat-value" id="statCritical">—</div>
-                <div class="stat-label">Critical</div>
+            <div class="metric-card critical">
+                <div class="metric-value" id="statCritical">—</div>
+                <div class="metric-label">Critical Alerts</div>
             </div>
-            <div class="stat-card orange">
-                <div class="stat-value" id="statHigh">—</div>
-                <div class="stat-label">High Risk</div>
+            <div class="metric-card warning">
+                <div class="metric-value" id="statHigh">—</div>
+                <div class="metric-label">High Risk Events</div>
             </div>
-            <div class="stat-card red">
-                <div class="stat-value" id="statLoginFailed">—</div>
-                <div class="stat-label">Login Failures</div>
-            </div>
-            <div class="stat-card red">
-                <div class="stat-value" id="statBlocked">—</div>
-                <div class="stat-label">Blocked Users</div>
-            </div>
-            <div class="stat-card orange">
-                <div class="stat-value" id="statVpn">—</div>
-                <div class="stat-label">VPN Detected</div>
-            </div>
-            <div class="stat-card purple">
-                <div class="stat-value" id="statAccessDenied">—</div>
-                <div class="stat-label">Access Denied</div>
-            </div>
-            <div class="stat-card green">
-                <div class="stat-value" id="statAvgRisk">—</div>
-                <div class="stat-label">Avg Risk Score</div>
+            <div class="metric-card success">
+                <div class="metric-value" id="statAvgRisk">—</div>
+                <div class="metric-label">Avg Risk Score</div>
             </div>
         </div>
 
-        <!-- Filter bar -->
-        <div class="filter-bar">
-            <label>Filter:</label>
-            <select id="filterType" onchange="applyFilter()">
-                <option value="">All Event Types</option>
-                <option>LOGIN_SUCCESS</option>
-                <option>LOGIN_FAILED</option>
-                <option>OTP_SENT</option>
-                <option>OTP_SUCCESS</option>
-                <option>OTP_FAILED</option>
-                <option>ACCESS_DENIED</option>
-                <option>ROLE_CHANGED</option>
-                <option>USER_CREATED</option>
-                <option>USER_DELETED</option>
-                <option>DEVICE_NEW</option>
-                <option>LOCATION_NEW</option>
-                <option>VPN_DETECTED</option>
-                <option>IMPOSSIBLE_TRAVEL</option>
-                <option>RISK_SCORE_CHANGED</option>
-                <option>USER_BLOCKED</option>
-                <option>USER_UNBLOCKED</option>
-                <option>FORCE_LOGOUT</option>
-            </select>
-            <select id="filterSev" onchange="applyFilter()">
-                <option value="">All Severities</option>
-                <option>CRITICAL</option>
-                <option>HIGH</option>
-                <option>MEDIUM</option>
-                <option>LOW</option>
-                <option>INFO</option>
-            </select>
-            <input type="text" id="filterUser" placeholder="Username..." oninput="applyFilter()" style="width: 130px;">
-            <span class="evt-count" id="evtCount">0 events</span>
-        </div>
+        <div class="soc-grid">
+            <div class="soc-main">
+                <div class="threat-map-container">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <h3 style="margin: 0; font-size: 0.9rem; text-transform: uppercase; color: var(--soc-muted);">Global Threat Origin (Mock)</h3>
+                        <span style="font-size: 0.75rem; color: var(--soc-accent);">Active Monitoring</span>
+                    </div>
+                    <div class="map-placeholder">
+                        <div style="text-align: center;">
+                            <p style="font-size: 2rem; margin: 0;">🌍</p>
+                            <p style="margin-top: 5px;">Geographic Incident Visualization</p>
+                        </div>
+                    </div>
+                </div>
 
-        <!-- Event stream table -->
-        <div class="card" style="padding: 0; overflow: hidden;">
-            <div class="table-wrapper">
-                <table class="event-table">
-                    <thead>
-                        <tr>
-                            <th>Timestamp</th>
-                            <th>Severity</th>
-                            <th>Event Type</th>
-                            <th>User</th>
-                            <th>IP Address</th>
-                            <th>Location</th>
-                            <th>Risk</th>
-                            <th>Details</th>
-                        </tr>
-                    </thead>
-                    <tbody id="eventBody">
-                        <tr>
-                            <td colspan="8" class="empty-msg">Connecting to live feed...</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="live-feed-card">
+                    <div class="feed-header">
+                        <h3 style="margin: 0; font-size: 0.9rem; text-transform: uppercase;">Real-time Security Stream</h3>
+                        <div style="display: flex; gap: 8px;">
+                            <select id="filterSev" onchange="renderTable()" style="padding: 4px; border-radius: 4px; font-size: 0.75rem; border: 1px solid #ddd;">
+                                <option value="">All Severities</option>
+                                <option>CRITICAL</option>
+                                <option>HIGH</option>
+                                <option>INFO</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-wrapper" style="max-height: 500px;">
+                        <table class="feed-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Event</th>
+                                    <th>User</th>
+                                    <th>Network/IP</th>
+                                    <th>Risk</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="eventBody">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">Initializing secure connection...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="academic-sidebar">
+                <h3 style="font-size: 0.85rem; text-transform: uppercase; color: var(--soc-muted); margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 8px;">NIST Research Insight</h3>
+                
+                <div class="nist-card">
+                    <h4>Policy Engine (PE)</h4>
+                    <p>Decision engine comparing behavioral data against NIST SP 800-207 principles.</p>
+                </div>
+
+                <div class="nist-card">
+                    <h4>Behavioral Scoring</h4>
+                    <p>Detecting "Impossible Travel" velocity anomalies in real-time logins.</p>
+                </div>
+
+                <div class="nist-card">
+                    <h4>Context Awareness</h4>
+                    <p>Adapting trust levels based on IP ranges and verified device signatures.</p>
+                </div>
+
+                <div style="margin-top: 20px; font-size: 0.7rem; color: #94a3b8; line-height: 1.4;">
+                    <p>© Dissertation Core: ZTS Project 2024</p>
+                    <p>Ref: NIST Zero Trust Guidelines</p>
+                </div>
             </div>
         </div>
-
     </div>
 
     <script src="/js/app.js?v=2"></script>
     <script>
-        var events = [];
-        var paused = false;
-        var MAX = 300;
+        let events = [];
+        const MAX_EVENTS = 100;
 
-        // format timestamp nicely
-        function formatTime(ts) {
-            if (!ts) return '—';
-            var d = new Date(ts);
-            return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB');
+        async function init() {
+            // Check session
+            const session = await (await fetch('/api/session')).json();
+            if (!session.loggedIn) return location.href = '/login';
+
+            buildNavbar(session.user.role, 'live-monitoring', session.user.username, session.user.permissions);
+            
+            // Load stats first
+            await loadStats();
+            
+            // Load history
+            try {
+                const res = await fetch('/api/monitor/events?limit=50');
+                events = await res.json();
+                renderTable();
+            } catch (e) {
+                console.error('History load failed');
+            }
+
+            // Connect Stream
+            connectSSE();
+            
+            // Auto refresh stats
+            setInterval(loadStats, 30000);
         }
 
-        // format details object as a short readable string
-        function formatDetails(d) {
-            if (!d || typeof d !== 'object') return '';
-            return Object.entries(d)
-                .map(function(kv) { return kv[0] + ': ' + JSON.stringify(kv[1]); })
-                .join(' | ');
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/monitor/stats');
+                const data = await res.json();
+                document.getElementById('statTotal').textContent = data.total || 0;
+                document.getElementById('statCritical').textContent = data.critical || 0;
+                document.getElementById('statHigh').textContent = data.high || 0;
+                document.getElementById('statAvgRisk').textContent = data.avg_risk || 0;
+            } catch (e) {}
         }
 
-        // pick a css class for the risk number
-        function riskClass(score) {
-            if (score >= 60) return 'high';
-            if (score >= 30) return 'med';
-            return 'low';
-        }
-
-        // build a single table row from an event object
-        function buildRow(evt, isNew) {
-            var tr = document.createElement('tr');
-            if (isNew) tr.className = 'new';
-
-            var ts    = formatTime(evt.timestamp);
-            var sev   = evt.severity || 'INFO';
-            var type  = evt.event_type || '—';
-            var user  = evt.username || '—';
-            var ip    = evt.ip || '—';
-            var loc   = evt.location || '—';
-            var risk  = evt.risk_score || 0;
-            var det   = formatDetails(evt.details);
-
-            tr.innerHTML =
-                '<td class="ts-cell">'   + ts   + '</td>' +
-                '<td><span class="sev sev-' + sev + '">' + sev + '</span></td>' +
-                '<td><span class="evt-type evt-' + type + '">' + type + '</span></td>' +
-                '<td><strong>' + user + '</strong></td>' +
-                '<td class="ip-cell">'   + ip   + '</td>' +
-                '<td style="color:#636e72;font-size:0.78rem">' + loc + '</td>' +
-                '<td><span class="risk-num ' + riskClass(risk) + '">' + risk + '</span></td>' +
-                '<td class="details-cell" title="' + det + '">' + det + '</td>';
-
-            return tr;
-        }
-
-        // re-render the whole table based on current filter settings
         function renderTable() {
-            var typeFilter = document.getElementById('filterType').value;
-            var sevFilter  = document.getElementById('filterSev').value;
-            var userFilter = document.getElementById('filterUser').value.toLowerCase();
-
-            var shown = events.filter(function(e) {
-                if (typeFilter && e.event_type !== typeFilter) return false;
-                if (sevFilter  && e.severity   !== sevFilter)  return false;
-                if (userFilter && (e.username || '').toLowerCase().indexOf(userFilter) === -1) return false;
-                return true;
-            });
-
-            var tbody = document.getElementById('eventBody');
+            const tbody = document.getElementById('eventBody');
+            const filterSev = document.getElementById('filterSev').value;
             tbody.innerHTML = '';
 
-            if (shown.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="empty-msg">No events match this filter.</td></tr>';
-            } else {
-                shown.forEach(function(e) {
-                    tbody.appendChild(buildRow(e, false));
-                });
+            const filtered = events.filter(e => !filterSev || e.severity === filterSev);
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No events matching filters.</td></tr>';
+                return;
             }
 
-            document.getElementById('evtCount').textContent = shown.length + ' / ' + events.length + ' events';
+            filtered.forEach(e => {
+                const tr = document.createElement('tr');
+                const timeStr = new Date(e.timestamp).toLocaleTimeString('en-GB');
+                
+                let typeClass = 'type-chip';
+                if (e.severity === 'CRITICAL') typeClass += ' critical';
+                if (e.severity === 'HIGH') typeClass += ' warning';
+
+                tr.innerHTML = `
+                    <td style="color: #64748b; font-size: 0.75rem;">${timeStr}</td>
+                    <td><span class="${typeClass}">${e.event_type}</span></td>
+                    <td><strong>${e.username}</strong></td>
+                    <td style="font-family: monospace; font-size: 0.75rem; color: #64748b;">${e.ip}</td>
+                    <td><span style="font-weight: 700; color: ${e.risk_score > 60 ? '#e74c3c' : '#27ae60'}">${e.risk_score}</span></td>
+                    <td><button class="btn btn-outline btn-sm" style="padding: 2px 8px; font-size: 0.7rem;" onclick="viewEventDetails('${e.id}')">Inspect</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
 
-        // add a new event to the top of the list
-        function addEvent(evt) {
-            events.unshift(evt);
-            if (events.length > MAX) events.pop();
-
-            var typeFilter = document.getElementById('filterType').value;
-            var sevFilter  = document.getElementById('filterSev').value;
-            var userFilter = document.getElementById('filterUser').value.toLowerCase();
-
-            var matches =
-                (!typeFilter || evt.event_type === typeFilter) &&
-                (!sevFilter  || evt.severity   === sevFilter)  &&
-                (!userFilter || (evt.username || '').toLowerCase().indexOf(userFilter) !== -1);
-
-            if (matches) {
-                var tbody = document.getElementById('eventBody');
-                // clear the "no events" placeholder if it's there
-                if (tbody.querySelector('.empty-msg')) tbody.innerHTML = '';
-
-                tbody.insertBefore(buildRow(evt, true), tbody.firstChild);
-
-                // trim DOM rows
-                while (tbody.children.length > MAX) {
-                    tbody.removeChild(tbody.lastChild);
-                }
-            }
-
-            document.getElementById('evtCount').textContent = events.length + ' events';
+        function connectSSE() {
+            const es = new EventSource('/api/monitor/stream');
+            es.onmessage = (msg) => {
+                try {
+                    const data = JSON.parse(msg.data);
+                    if (data.type === 'ping' || data.type === 'connected') return;
+                    
+                    events.unshift(data);
+                    if (events.length > MAX_EVENTS) events.pop();
+                    renderTable();
+                    // Optional: refresh stats on every event for high-fidelity
+                    loadStats();
+                } catch (e) {}
+            };
+            es.onerror = () => {
+                document.getElementById('liveStatus').textContent = 'Stream Offline';
+                document.getElementById('liveBadge').classList.remove('live');
+            };
         }
 
-        function applyFilter() {
-            renderTable();
-        }
-
-        function togglePause() {
-            paused = !paused;
-            var btn = document.getElementById('pauseBtn');
-            btn.textContent = paused ? '▶ Resume' : '⏸ Pause';
-        }
-
-        function clearStream() {
+        function clearFeed() {
             events = [];
             renderTable();
         }
 
-        // set the live indicator state
-        function setStatus(state) {
-            var badge = document.getElementById('liveBadge');
-            var text  = document.getElementById('liveStatus');
-            var dot   = badge.querySelector('.dot');
-
-            if (state === 'live') {
-                badge.className = 'live-badge';
-                dot.style.animation = 'blink 1.2s infinite';
-                dot.style.background = '#27ae60';
-                text.textContent = 'LIVE';
-            } else if (state === 'connecting') {
-                badge.className = 'live-badge';
-                dot.style.animation = 'none';
-                dot.style.background = '#e67e22';
-                text.textContent = 'Connecting...';
-            } else {
-                badge.className = 'live-badge offline';
-                text.textContent = 'Disconnected';
-            }
-        }
-
-        // open the live event stream using Server-Sent Events
-        function connect() {
-            setStatus('connecting');
-            var es = new EventSource('/api/monitor/stream');
-
-            es.onopen = function() {
-                setStatus('live');
-            };
-
-            es.onmessage = function(msg) {
-                try {
-                    var data = JSON.parse(msg.data);
-                    // ignore control messages
-                    if (data.type === 'connected' || data.type === 'ping') return;
-                    if (!paused) addEvent(data);
-                } catch(e) {}
-            };
-
-            es.onerror = function() {
-                setStatus('disconnected');
-                // EventSource auto-reconnects — no need to do it manually
-            };
-        }
-
-
-        // load the 24h KPI stats
-        async function loadStats() {
-            try {
-                var res  = await fetch('/api/monitor/stats');
-                var data = await res.json();
-                document.getElementById('statTotal').textContent       = data.total        || 0;
-                document.getElementById('statCritical').textContent    = data.critical      || 0;
-                document.getElementById('statHigh').textContent        = data.high          || 0;
-                document.getElementById('statLoginFailed').textContent = data.login_failed  || 0;
-                document.getElementById('statBlocked').textContent     = data.blocked       || 0;
-                document.getElementById('statVpn').textContent         = data.vpn_detected  || 0;
-                document.getElementById('statAccessDenied').textContent= data.access_denied || 0;
-                document.getElementById('statAvgRisk').textContent     = data.avg_risk      || 0;
-            } catch(e) {}
-        }
-
-        // start everything
-        async function init() {
-            var session = await (await fetch('/api/session')).json();
-            if (!session.loggedIn) return location.href = '/login';
-
-            buildNavbar(session.user.role, 'live-monitoring', session.user.username, session.user.permissions);
-
-            await loadStats();
-
-            // load recent history first
-            try {
-                var res    = await fetch('/api/monitor/events?limit=200');
-                var recent = await res.json();
-                events = recent;
-                renderTable();
-            } catch(e) {}
-
-            // then open live feed
-            connect();
-
-            // refresh stats every minute
-            setInterval(loadStats, 60000);
+        function viewEventDetails(id) {
+            const evt = events.find(e => e.id == id);
+            if (!evt) return;
+            alert(JSON.stringify(evt.details, null, 2));
         }
 
         init();
     </script>
 </body>
+
 </html>

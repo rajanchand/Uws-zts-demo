@@ -1,7 +1,44 @@
+/**
+ * ZTS ARCHITECTURE: POLICY ENFORCEMENT POINT (PEP)
+ * This middleware aligns with NIST SP 800-207 standards.
+ * Every request is intercepted here to verify Identity and Authorization 
+ * before granting access to resources.
+ */
+
 const fs = require('fs');
 const path = require('path');
 
 const permsFile = path.join(__dirname, '..', 'role_permissions.json');
+
+/**
+ * Common Permission Helper: Checks if a role has a specific power
+ */
+function hasPermission(role, permKey) {
+  if (role === 'SuperAdmin') return true;
+  try {
+    const data = JSON.parse(fs.readFileSync(permsFile, 'utf8'));
+    return !!(data[role] && data[role][permKey]);
+  } catch (err) {
+    return false;
+  }
+}
+
+/**
+ * Common Helper: Returns an array of strings representing all permissions for a role
+ */
+function getRolePermissions(role) {
+  if (role === 'SuperAdmin') {
+    return ['manage_users', 'delete_users', 'reset_passwords', 'approve_devices', 'manage_depts', 'view_monitoring', 'analyze_risk', 'manage_network', 'view_posture'];
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(permsFile, 'utf8'));
+    const rolePerms = data[role] || {};
+    return Object.keys(rolePerms).filter(k => rolePerms[k]);
+  } catch (err) {
+    return [];
+  }
+}
+
 
 function getPermissions() {
   try {
@@ -54,4 +91,9 @@ function requirePermission(key) {
   };
 }
 
-module.exports = { requireRole, requirePermission };
+module.exports = { 
+  requireRole, 
+  requirePermission, 
+  hasPermission, 
+  getRolePermissions 
+};

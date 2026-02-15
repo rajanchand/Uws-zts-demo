@@ -15,21 +15,20 @@ const { logSecurityEvent } = require('../services/monitorService');
 const { generateCSRFToken } = require('../middleware/csrf');
 const { loginLimiter, otpLimiter } = require('../middleware/rateLimiter');
 
-// Helper to get permissions array for a role
-function getRolePermissions(role) {
-    if (role === 'SuperAdmin') return ['manage_users', 'delete_users', 'reset_passwords', 'approve_devices', 'manage_depts', 'view_monitoring', 'analyze_risk', 'manage_network', 'view_posture'];
-    try {
-        const permsJSON = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'role_permissions.json'), 'utf8'));
-        const rolePerms = permsJSON[role] || {};
-        return Object.keys(rolePerms).filter(k => rolePerms[k]);
-    } catch (e) {
-        return [];
-    }
-}
+const { getRolePermissions } = require('../middleware/rbac');
 
 const router = express.Router();
 
+
 // --- Helper Functions to keep Route handlers lean ---
+
+/**
+ * Checks if the current IP belongs to the trusted Office Network
+ */
+function isOfficeNetwork(ip) {
+    const OFFICE_RANGE = process.env.OFFICE_IP_RANGE || '192.168.1.'; // Demo range
+    return ip.startsWith(OFFICE_RANGE) || ip === '127.0.0.1';
+}
 
 /**
  * Checks if the current time is within allowed working hours
@@ -86,7 +85,7 @@ async function validateDevice(user, deviceResult, ip, country, browserInfo) {
             device_id: deviceResult.device ? deviceResult.device.id : null,
             details: { browser: browserInfo, needs_approval: true, role: user.role }
         });
-        sendAnomalyAlertEmail(user.username, ip, country, 'New device detected (needs approval)').catch(() => {});
+        sendAnomalyAlertEmail(user.username, ip, country, 'New device detected (needs approval)').catch(() => { });
         return { success: false, message: 'New device detected. Your device must be approved by an administrator before you can login.', devicePending: true };
     }
 
@@ -102,7 +101,7 @@ async function validateDevice(user, deviceResult, ip, country, browserInfo) {
             device_id: deviceResult.device ? deviceResult.device.id : null,
             details: { browser: browserInfo, auto_approved: true, role: user.role }
         });
-        sendAnomalyAlertEmail(user.username, ip, country, 'New device registered (auto-approved)').catch(() => {});
+        sendAnomalyAlertEmail(user.username, ip, country, 'New device registered (auto-approved)').catch(() => { });
     }
 
     if (!deviceResult.device.approved && needsApproval) {
@@ -171,7 +170,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
         const currentHour = new Date().getHours();
         const isUnusualHours = currentHour >= 22 || currentHour < 6;
-        
+
         // Removed strict isWithinWorkingHours block, now handled by risk scoring points.
 
         // 2. Check IP Blocklist
@@ -188,7 +187,7 @@ router.post('/login', loginLimiter, async (req, res) => {
             .single();
 
         if (!user) {
-            logSecurityEvent({ event_type: 'LOGIN_FAILED', username: username, ip: ip, details: { reason: 'User not found' } }).catch(() => {});
+            logSecurityEvent({ event_type: 'LOGIN_FAILED', username: username, ip: ip, details: { reason: 'User not found' } }).catch(() => { });
             return res.json({ success: false, message: 'Invalid username or password.' });
         }
 
@@ -290,11 +289,11 @@ router.post('/login', loginLimiter, async (req, res) => {
                     risk_score: 100,
                     details: { reason: anomalyReason, previous_location: lastLogin.country, role: user.role }
                 });
-                sendAnomalyAlertEmail(user.username, ip, country, anomalyReason).catch(() => {});
+                sendAnomalyAlertEmail(user.username, ip, country, anomalyReason).catch(() => { });
             }
         }
 
-        // 10. Calculate Risk Score
+        // 10. Calculate Risk Score (NIST Policy Engine Decision)
         const risk = await calculateRisk({
             userId: user.id,
             username: user.username,
@@ -305,7 +304,9 @@ router.post('/login', loginLimiter, async (req, res) => {
             isVPN: vpn,
             isAdminUnknownIP: false,
             role: user.role,
-            isUnusualHours: isUnusualHours
+            isUnusualHours: isUnusualHours,
+            isImpossibleTravel: isImpossibleTravel,
+            isOfficeIP: isOfficeNetwork(ip)
         });
 
         if (vpn) {
@@ -367,7 +368,7 @@ router.post('/login', loginLimiter, async (req, res) => {
                 details: { risk_level: 'Low', role: user.role, adaptive_mfa: 'bypassed', department: user.department }
             });
 
-            sendLoginAlertEmail(user.username, ip, country).catch(() => {});
+            sendLoginAlertEmail(user.username, ip, country).catch(() => { });
 
             return res.json({
                 success: true,
@@ -453,11 +454,11 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
             await supabase.from('users').update({ status: 'active_pending_approval' }).eq('id', userId);
             req.session.otpVerified = true;
             req.session.isApproved = false;
-            
+
             await logEvent(userId, 'LOGIN_HIGH_RISK_PENDING', `OTP verified, but High Risk (${riskScore}) requires admin approval.`, req.ip);
-            
-            return res.json({ 
-                success: true, 
+
+            return res.json({
+                success: true,
                 message: 'High risk detected. Your login requires administrative approval.',
                 redirect: '/approval-pending'
             });
@@ -533,7 +534,7 @@ router.get('/logout', async (req, res) => {
         if (req.session && req.session.userId) {
             const userId = req.session.userId;
             await supabase.from('users').update({ active_session_token: null }).eq('id', userId);
-            await logEvent(userId, 'LOGOUT', 'User logged out', req.ip).catch(() => {});
+            await logEvent(userId, 'LOGOUT', 'User logged out', req.ip).catch(() => { });
         }
 
         res.clearCookie('connect.sid');

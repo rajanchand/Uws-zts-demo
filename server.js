@@ -70,33 +70,16 @@ const { requireLogin } = require('./middleware/auth');
 const { requireRole, requirePermission } = require('./middleware/rbac');
 const { flagHighRisk } = require('./middleware/riskCheck');
 const { handleReAuth } = require('./middleware/stepUpAuth');
+const { continuousMonitoring } = require('./middleware/monitoring');
 
-// Continuous Monitoring & Access Control
-const continuousMonitoring = (req, res, next) => {
-    if (!req.session || !req.session.userId) return next();
 
-    // 1. IP Binding Check
-    const currentIp = (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim().replace('::ffff:', '');
-    if (req.session.loginIP && req.session.loginIP !== currentIp) {
-        console.warn(`[ZTS] IP Change detected for user ${req.session.username}. Session terminated.`);
-        return req.session.destroy(() => res.redirect('/login?reason=ip_change'));
-    }
-
-    // 2. High Risk Approval Check
-    const isPublicRoute = ['/logout', '/approval-pending', '/api/session', '/login'].includes(req.path);
-    if (req.session.otpVerified && req.session.isApproved === false && !isPublicRoute) {
-        return res.redirect('/approval-pending');
-    }
-
-    next();
-};
-
-// Global middleware
+// Global middleware stack: All active ZTS security measures are applied here.
 app.use(requireLogin);
-app.use(continuousMonitoring);
+app.use(continuousMonitoring); // Real-time session monitoring (IP binding, high-risk lockout)
 app.use(flagHighRisk);
 app.use(csrfProtection);
 app.use(verifyHMAC);
+
 
 app.get('/api/csrf-token', (req, res) => {
     res.json({ csrfToken: generateCSRFToken(req) });
@@ -126,7 +109,17 @@ app.get('/security-block', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'security-block.html'));
 });
 
+// Final Error Handler: Catch all unhandled exceptions gracefully.
+app.use((err, req, res, next) => {
+    console.error(`[ZTS Critical Error] ${err.stack}`);
+    res.status(500).json({
+        success: false,
+        message: 'A critical security server error has occurred. Please contact IT support.'
+    });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
+
