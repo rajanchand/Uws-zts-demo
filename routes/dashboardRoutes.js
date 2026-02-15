@@ -192,18 +192,20 @@ router.get('/api/admin-stats', async (req, res) => {
     }
 
     // DEVICE POSTURE ENFORCEMENT
-    // Check if the current device is approved
-    const { data: currentDevice } = await supabase
-        .from('devices')
-        .select('approved')
-        .eq('user_id', req.session.userId)
-        .eq('fingerprint', req.session.deviceFingerprint)
-        .single();
+    // Check if the current device is approved (SuperAdmin bypasses this)
+    if (role !== 'SuperAdmin') {
+        const { data: currentDevice } = await supabase
+            .from('devices')
+            .select('approved')
+            .eq('user_id', req.session.userId)
+            .eq('fingerprint', req.session.deviceFingerprint)
+            .single();
 
-    if (!currentDevice || !currentDevice.approved) {
-        return res.status(403).json({ 
-            error: 'Access denied: Your device is not managed or approved by IT. Admin functions restricted.' 
-        });
+        if (!currentDevice || !currentDevice.approved) {
+            return res.status(403).json({ 
+                error: 'Access denied: Your device is not managed or approved by IT. Admin functions restricted.' 
+            });
+        }
     }
 
     try {
