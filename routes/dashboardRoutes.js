@@ -58,7 +58,7 @@ const dashboardContent = {
         cards: [
             { icon: 'B', title: 'Budget Tracker', description: 'Monitor departmental budgets', link: '#' },
             { icon: 'I', title: 'Invoices', description: 'Manage invoicing workflow', link: '#' },
-            { icon: 'F', title: 'Financial Reports', description: 'Generate financial summaries', link: '#' }
+            { icon: 'A', title: 'Security Audit', description: 'View user logs and activity', link: '/mapping' }
         ]
     },
     IT: {
@@ -66,7 +66,7 @@ const dashboardContent = {
         description: 'Infrastructure, security, and support tools.',
         cards: [
             { icon: 'S', title: 'System Health', description: 'Monitor server status', link: '#' },
-            { icon: 'T', title: 'Tickets', description: 'View support tickets', link: '#' },
+            { icon: 'M', title: 'User Management', description: 'Audit roles and telemetry', link: '/mapping' },
             { icon: 'N', title: 'Network', description: 'Network management tools', link: '/network' }
         ]
     },
@@ -281,7 +281,7 @@ router.get('/api/admin-stats', async (req, res) => {
 
 // SuperAdmin: View any user's audit log
 router.get('/api/admin/user/:userId/audit-log', async (req, res) => {
-    if (!hasPermission(req.session.role, 'manage_users')) {
+    if (!hasPermission(req.session.role, 'view_monitoring')) {
         return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -317,7 +317,7 @@ router.get('/api/admin/user/:userId/audit-log', async (req, res) => {
 
 // SuperAdmin: View any user's risk data
 router.get('/api/admin/user/:userId/risk-data', async (req, res) => {
-    if (!hasPermission(req.session.role, 'manage_users')) {
+    if (!hasPermission(req.session.role, 'analyze_risk')) {
         return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -375,7 +375,7 @@ router.get('/api/admin/user/:userId/risk-data', async (req, res) => {
 
 // SuperAdmin: View any user's login history & sessions
 router.get('/api/admin/user/:userId/login-history', async (req, res) => {
-    if (!hasPermission(req.session.role, 'manage_users')) {
+    if (!hasPermission(req.session.role, 'view_monitoring')) {
         return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -431,7 +431,7 @@ router.get('/api/admin/user/:userId/login-history', async (req, res) => {
 
 // SuperAdmin: View any user's device health
 router.get('/api/admin/user/:userId/device-health', async (req, res) => {
-    if (!hasPermission(req.session.role, 'manage_users')) {
+    if (!hasPermission(req.session.role, 'view_posture')) {
         return res.status(403).json({ error: 'Access denied' });
     }
 

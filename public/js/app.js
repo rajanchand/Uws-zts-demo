@@ -118,13 +118,13 @@ function buildNavbar(role, activePage, username, permissions) {
         html += '</div>';
     }
 
-    // Mapping dropdown (requires manage_users, manage_depts, or approve_devices)
-    if (permissions.includes('manage_users') || permissions.includes('manage_depts') || permissions.includes('approve_devices')) {
+    // Mapping dropdown (requires manage_users, manage_depts, approve_devices, or view_monitoring)
+    if (permissions.includes('manage_users') || permissions.includes('manage_depts') || permissions.includes('approve_devices') || permissions.includes('view_monitoring')) {
         var mappingActive = (activePage === 'mapping' || activePage === 'register-device' || activePage === 'live-monitoring') ? ' active' : '';
         html += '<div class="nav-item' + mappingActive + '">';
         html += '<button class="nav-link' + mappingActive + '" onclick="toggleDropdown(this)">Mapping <span class="arrow">▾</span></button>';
         html += '<div class="dropdown-menu">';
-        if (permissions.includes('manage_users') || permissions.includes('manage_depts')) {
+        if (permissions.includes('manage_users') || permissions.includes('manage_depts') || permissions.includes('view_monitoring')) {
             html += '<a href="/mapping"' + (activePage === 'mapping' ? ' class="active"' : '') + '>User Management</a>';
             if (role === 'SuperAdmin') {
                 html += '<a href="/mapping/user-access"' + (activePage === 'user-access' ? ' class="active"' : '') + '>User Access</a>';

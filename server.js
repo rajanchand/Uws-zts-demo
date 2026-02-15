@@ -115,7 +115,7 @@ app.get('/mapping/user-access', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'user-access.html'));
 });
 app.use('/', rbacRoutes);
-app.use('/', requirePermission('manage_users'), mappingRoutes);
+app.use('/', mappingRoutes);
 app.use('/', requirePermission('view_monitoring'), monitoringRoutes);
 app.use('/', requirePermission('manage_network'), networkRoutes);
 app.use('/', requirePermission('view_posture'), securityPostureRoutes);

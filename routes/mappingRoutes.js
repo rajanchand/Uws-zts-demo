@@ -63,7 +63,11 @@ router.get('/register-device', requirePermission('approve_devices'), (req, res) 
 // --- User Management API ---
 
 // Get all users
-router.get('/api/mapping/users', requirePermission('manage_users'), async (req, res) => {
+router.get('/api/mapping/users', async (req, res) => {
+    // Allow if they can manage users OR if they are just monitoring
+    if (!hasPermission(req.session.role, 'manage_users') && !hasPermission(req.session.role, 'view_monitoring')) {
+        return res.status(403).json({ error: 'Access denied.' });
+    }
     try {
         const { data: users } = await supabase
             .from('users')
@@ -77,7 +81,7 @@ router.get('/api/mapping/users', requirePermission('manage_users'), async (req, 
 });
 
 // Create new user
-router.post('/api/mapping/users/create', requireReAuth, requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/users/create', requirePermission('manage_users'), requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         const { username, password, role, email, department } = req.body;
 
@@ -199,7 +203,7 @@ router.post('/api/mapping/users/approve-risk', requireReAuth, requireApprovedDev
 });
 
 // Delete user
-router.post('/api/mapping/users/delete', requireReAuth, requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/users/delete', requirePermission('delete_users'), requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         const userId = req.body.userId;
         // Check delete_users permission from RBAC matrix
@@ -242,7 +246,7 @@ router.post('/api/mapping/users/delete', requireReAuth, requireApprovedDevice, a
 });
 
 // Change user role
-router.post('/api/mapping/users/change-role', requireReAuth, requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/users/change-role', requirePermission('manage_users'), requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         const { userId, newRole } = req.body;
 
@@ -267,7 +271,7 @@ router.post('/api/mapping/users/change-role', requireReAuth, requireApprovedDevi
 });
 
 // Edit user details
-router.post('/api/mapping/users/edit', requireReAuth, requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/users/edit', requirePermission('manage_users'), requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         const { userId, username, role, email, department } = req.body;
 
@@ -304,7 +308,7 @@ router.post('/api/mapping/users/edit', requireReAuth, requireApprovedDevice, asy
 });
 
 // Suspend user
-router.post('/api/mapping/users/suspend', requireReAuth, requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/users/suspend', requirePermission('manage_users'), requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         const { userId } = req.body;
 
@@ -329,7 +333,7 @@ router.post('/api/mapping/users/suspend', requireReAuth, requireApprovedDevice, 
 });
 
 // Block user
-router.post('/api/mapping/users/block', requireReAuth, requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/users/block', requirePermission('manage_users'), requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         const { userId } = req.body;
 
@@ -354,7 +358,7 @@ router.post('/api/mapping/users/block', requireReAuth, requireApprovedDevice, as
 });
 
 // Activate user
-router.post('/api/mapping/users/activate', requireReAuth, requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/users/activate', requirePermission('manage_users'), requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         const { userId } = req.body;
 
@@ -453,7 +457,8 @@ router.post('/api/mapping/departments/delete', requirePermission('manage_depts')
     }
 });
 
-router.post('/api/mapping/departments/update-head', requireApprovedDevice, async (req, res) => {
+// Update Department Head
+router.post('/api/mapping/departments/update-head', requirePermission('manage_depts'), requireApprovedDevice, async (req, res) => {
     try {
         const deptId = req.body.departmentId;
         const headUserId = req.body.head_user_id ? parseInt(req.body.head_user_id) : null;
