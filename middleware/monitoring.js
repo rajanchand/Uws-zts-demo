@@ -13,8 +13,15 @@ const { supabase } = require('../db');
  * admin-triggered lockouts in real-time.
  */
 const continuousMonitoring = async (req, res, next) => {
-    // Skip if not logged in
-    if (!req.session || !req.session.userId) return next();
+    // 🛡️ CRITICAL SAFETY: Exit immediately if session is missing to prevent 502 crashes
+    if (!req.session) {
+        return next();
+    }
+
+    // Skip monitoring for unauthenticated users (Public routes)
+    if (!req.session.userId) {
+        return next();
+    }
 
     const currentTimespamp = Date.now();
     const lastCheck = req.session.lastDBCheck || 0;

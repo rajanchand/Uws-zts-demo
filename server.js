@@ -39,7 +39,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Session config
+// Session config (Must be before any middleware using req.session)
 app.use(session({
     secret: process.env.SESSION_SECRET || 'zts-default-secret',
     resave: false,
@@ -72,24 +72,24 @@ const { flagHighRisk } = require('./middleware/riskCheck');
 const { handleReAuth } = require('./middleware/stepUpAuth');
 const { continuousMonitoring } = require('./middleware/monitoring');
 
-
-// Global middleware stack: All active ZTS security measures are applied here.
-app.use(requireLogin);
-app.use(continuousMonitoring); // Real-time session monitoring (IP binding, high-risk lockout)
-app.use(flagHighRisk);
-app.use(csrfProtection);
-app.use(verifyHMAC);
-
-
 app.get('/api/csrf-token', (req, res) => {
     res.json({ csrfToken: generateCSRFToken(req) });
 });
 
+// --- 🔓 PUBLIC ROUTES (Excluded from ZT Enforcement) ---
+app.use('/', authRoutes); // Includes /login, /logout, /otp etc.
+
+// --- 🔒 GLOBAL ZERO TRUST ENFORCEMENT (Applied to all following routes) ---
+app.use(requireLogin);
+app.use(continuousMonitoring); // Policy Enforcement Point (PEP)
+app.use(flagHighRisk);
+app.use(csrfProtection);
+app.use(verifyHMAC);
+
+// --- 📂 PROTECTED ROUTES (Only accessible if PEP grants access) ---
 app.post('/api/verify-reauth', handleReAuth);
 app.use('/api', apiLimiter);
 
-// Routes
-app.use('/', authRoutes);
 app.use('/', dashboardRoutes);
 app.use('/', profileRoutes);
 
@@ -109,12 +109,12 @@ app.get('/security-block', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'security-block.html'));
 });
 
-// Final Error Handler: Catch all unhandled exceptions gracefully.
+// Final Error Handler
 app.use((err, req, res, next) => {
     console.error(`[ZTS Critical Error] ${err.stack}`);
     res.status(500).json({
         success: false,
-        message: 'A critical security server error has occurred. Please contact IT support.'
+        message: 'A critical security server error has occurred.'
     });
 });
 
@@ -122,4 +122,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
-
