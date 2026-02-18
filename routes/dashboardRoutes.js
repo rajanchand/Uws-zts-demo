@@ -1,4 +1,8 @@
+const express = require('express');
+const path = require('path');
+const { supabase } = require('../db');
 const { getUserAuditLog } = require('../services/auditService');
+const { getRiskHistory } = require('../services/riskEngine');
 const { getDeviceHealth } = require('../services/deviceService');
 const { hasPermission, getRolePermissions } = require('../middleware/rbac');
 
