@@ -6,6 +6,8 @@ const { getRiskHistory } = require('../services/riskEngine');
 const { getDeviceHealth } = require('../services/deviceService');
 const { hasPermission, getRolePermissions } = require('../middleware/rbac');
 
+const { getRecentEvents, getStats24h } = require('../services/monitorService');
+
 const router = express.Router();
 
 
@@ -67,34 +69,61 @@ router.get('/dashboard', (req, res) => {
 router.get('/api/dashboard-data', async (req, res) => {
     try {
         const role = req.session.role;
+        const userId = req.session.userId;
         const content = dashboardContent[role] || dashboardContent.HR;
 
-        const securityCard = { icon: 'S', title: 'My Security', description: 'View your risk score', link: '/risk' };
-        const cards = content.cards.slice();
-        cards.push(securityCard);
+        // KPI stats for admins
+        let stats = null;
+        let roleStats = null;
+        let recentEvents = null;
 
-        const { count: sessionCount } = await supabase
-            .from('sessions_log')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', req.session.userId);
+        if (role === 'SuperAdmin' || role === 'IT') {
+            const monitorStats = await getStats24h();
+            const { count: totalUsers } = await supabase.from('users').select('*', { count: 'exact', head: true });
+            
+            stats = {
+                total_users: totalUsers || 0,
+                active_24h: monitorStats.active_users || 0,
+                blocked_ips: monitorStats.blocked || 0,
+                failed_logins: monitorStats.login_failed || 0
+            };
 
-        const { data: lastSession } = await supabase
-            .from('sessions_log')
-            .select('country, device_fingerprint')
-            .eq('user_id', req.session.userId)
-            .order('login_at', { ascending: false })
-            .limit(1)
-            .single();
+            // role stats
+            const { data: usersData } = await supabase.from('users').select('role');
+            const roleCount = {};
+            (usersData || []).forEach(u => {
+                roleCount[u.role] = (roleCount[u.role] || 0) + 1;
+            });
+            roleStats = Object.entries(roleCount).map(([r, c]) => ({ role: r, count: c }));
 
-        let isNewDevice = false;
-        if (lastSession) {
-            const { count: deviceCount } = await supabase
-                .from('devices')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', req.session.userId)
-                .eq('fingerprint', lastSession.device_fingerprint);
-            isNewDevice = deviceCount === 0;
+            // Recent global events
+            recentEvents = await getRecentEvents(15);
+        } else {
+            // events for this user only
+            const { data: userLogs } = await supabase
+                .from('audit_log')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(10);
+            
+            recentEvents = (userLogs || []).map(l => ({
+                timestamp: l.created_at,
+                username: req.session.username,
+                event_type: l.action
+            }));
         }
+
+        const risk = {
+            score: req.session.riskScore || 0,
+            level: req.session.riskLevel || 'Low',
+            factors: req.session.riskFactors || []
+        };
+
+        const sec = {
+            deviceBound: !!req.session.deviceFingerprint,
+            sessionToken: 'active'
+        };
 
         res.json({
             user: {
@@ -106,17 +135,15 @@ router.get('/api/dashboard-data', async (req, res) => {
             dashboard: {
                 title: content.title,
                 description: content.description,
-                cards: cards
+                cards: content.cards
             },
-            security: {
-                riskScore: req.session.riskScore || 0,
-                riskLevel: req.session.riskLevel || 'Low',
-                sessionCount: sessionCount || 0,
-                loginContext: {
-                    country: lastSession ? lastSession.country : req.session.loginCountry || 'Unknown',
-                    isNewDevice: isNewDevice
-                }
-            }
+            risk: risk,
+            stats: stats,
+            role_stats: roleStats,
+            recent_events: recentEvents,
+            security: sec,
+            ip: (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim().replace('::ffff:', ''),
+            country: req.session.loginCountry || 'Unknown'
         });
     } catch (err) {
         console.error('Dashboard data error:', err);
