@@ -7,15 +7,15 @@ const { requireRole } = require('../middleware/rbac');
 const permsFile = path.join(__dirname, '..', 'role_permissions.json');
 
 const names = {
-  manage_users: 'User Mgmt',
+  manage_users: 'User Management',
   delete_users: 'Delete Users',
-  reset_passwords: 'Passwords',
-  approve_devices: 'Devices',
-  manage_depts: 'Departments',
-  view_monitoring: 'Monitoring',
-  analyze_risk: 'Risk Analysis',
-  manage_network: 'Network',
-  view_posture: 'Posture'
+  reset_passwords: 'Force Password Reset',
+  approve_devices: 'Endpoint Approval',
+  manage_depts: 'Department Control',
+  view_monitoring: 'Real-time Monitoring',
+  analyze_risk: 'Behavioral Risk Analysis',
+  manage_network: 'Network Segmentation',
+  view_posture: 'Security Posture View'
 };
 
 router.get('/api/rbac/matrix', async (req, res) => {

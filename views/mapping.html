@@ -612,20 +612,59 @@
                 const perms = data.matrix[role];
                 
                 if (!perms) {
-                    list.innerHTML = '<div style="text-align:center; padding:20px; color:#e74c3c;">No permissions defined for this role.</div>';
+                    list.innerHTML = `<div style="text-align:center; padding:20px; color:#e74c3c;">No permissions defined for role "${role}".</div>`;
                     return;
                 }
 
-                let html = '';
+                const canEdit = (window.userRole === 'SuperAdmin' && role !== 'SuperAdmin');
+                let html = role === 'SuperAdmin' 
+                    ? '<div style="padding:10px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; font-size:0.75rem; color:#15803d; margin-bottom:15px;">SuperAdmin role has all permissions unlocked by default.</div>'
+                    : `<div style="padding:10px; background:#fff7ed; border:1px solid #ffedd5; border-radius:6px; font-size:0.75rem; color:#9a3412; margin-bottom:15px;">
+                        <strong>Note:</strong> Changes here apply to <strong>ALL</strong> users with the <strong>${role}</strong> role.
+                       </div>`;
+
                 perms.forEach(p => {
                     const has = (role === 'SuperAdmin') ? true : p.is_granted;
-                    const icon = has ? '<span style="color:#27ae60; margin-right:10px;">✓</span>' : '<span style="color:#e74c3c; opacity:0.3; margin-right:10px;">✗</span>';
-                    const activeStyle = has ? '' : 'color:#aaa; text-decoration:line-through; font-size:0.85rem;';
-                    html += `<div style="display:flex; align-items:center; padding:10px 0; border-bottom:1px solid #eee; ${activeStyle}">${icon} ${p.permission_name}</div>`;
+                    const disabled = !canEdit ? 'disabled' : '';
+                    const checked = has ? 'checked' : '';
+                    
+                    html += `
+                        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; border-bottom:1px solid #f1f5f9;">
+                            <label style="font-size:0.9rem; color:#334155; cursor:${canEdit ? 'pointer' : 'default'}">
+                                ${p.permission_name}
+                            </label>
+                            <input type="checkbox" ${checked} ${disabled} 
+                                   style="width:18px; height:18px; cursor:${canEdit ? 'pointer' : 'not-allowed'}"
+                                   onchange="togglePermission('${role}', '${p.permission_key}', this)">
+                        </div>`;
                 });
                 list.innerHTML = html;
             } catch (err) {
                 list.innerHTML = '<div style="text-align:center; padding:20px; color:#e74c3c;">Matrix error.</div>';
+            }
+        }
+
+        async function togglePermission(role, key, el) {
+            try {
+                const res = await fetch('/api/rbac/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        role: role,
+                        permission_key: key,
+                        is_granted: el.checked
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`Updated ${role} policy: ${key}`, 'success');
+                } else {
+                    el.checked = !el.checked; // Revert UI
+                    showToast(data.error || 'Failed to update policy', 'error');
+                }
+            } catch (err) {
+                el.checked = !el.checked;
+                showToast('Network error updating policy', 'error');
             }
         }
 
