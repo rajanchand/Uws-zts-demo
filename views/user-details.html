@@ -291,7 +291,7 @@
     <script src="/js/app.js?v=4"></script>
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const targetUserId = urlParams.get('id');
+        const targetUserId = urlParams.get('userId');
 
         async function init() {
             var s = await (await fetch('/api/session')).json();
