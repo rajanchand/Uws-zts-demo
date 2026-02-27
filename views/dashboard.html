@@ -279,18 +279,17 @@
 
             <!-- Sidebar Column -->
             <div>
-                <!-- Academic Insight Sidebar (Distinction Item) -->
-                <div class="card" style="background: #f0f7ff; border: 1px solid #c2e0ff; margin-bottom: 12px;">
-                    <h4 style="margin: 0 0 10px 0; font-size: 0.85rem; color: #0c4a6e; text-transform: uppercase;">NIST SP 800-207 Insight</h4>
-                    <div style="font-size: 0.78rem; color: #075985; line-height: 1.5;">
-                        <p><strong>PEP:</strong> Middleware validates Identity & Device on every request.</p>
-                        <hr style="margin: 8px 0; border: 0; border-top: 1px solid #cbd5e1;">
-                        <p><strong>PE:</strong> The <strong>Risk Engine</strong> calculates trust using behavioral scores.</p>
-                        <hr style="margin: 8px 0; border: 0; border-top: 1px solid #cbd5e1;">
-                        <p><strong>PIP:</strong> Monitoring logs feed the state to the decision engine.</p>
+                <div class="card" style="border: 1px solid #e2e8f0; background: #fafafa; margin-bottom: 12px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Architecture: NIST SP 800-207</h4>
+                    <div style="font-size: 0.78rem; color: #475569; line-height: 1.6;">
+                        <p><strong>PEP:</strong> Zero Trust Middleware validates Identity & Device on every request.</p>
+                        <hr style="margin: 8px 0; border: 0; border-top: 1px solid #eee;">
+                        <p><strong>PE:</strong> The Risk Engine calculates real-time trust scores.</p>
+                        <hr style="margin: 8px 0; border: 0; border-top: 1px solid #eee;">
+                        <p><strong>PIP:</strong> Continuous monitoring logs feed metadata to the decision engine.</p>
                     </div>
                     <div style="margin-top: 12px; font-size: 0.7rem;">
-                        <a href="https://csrc.nist.gov/pubs/sp/800/207/final" target="_blank" style="color: #0984e3; text-decoration: none;">Reference Documents →</a>
+                        <a href="https://csrc.nist.gov/pubs/sp/800/207/final" target="_blank" style="color: #1a73e8; text-decoration: none;">View Framework Standards →</a>
                     </div>
                 </div>
 
@@ -363,28 +362,24 @@
             if (!grid || !stats) return;
             grid.innerHTML = `
                 <div class="kpi-card blue">
-                    <div class="kpi-icon">👥</div>
                     <div>
                         <div class="kpi-label">Total Users</div>
                         <div class="kpi-value">${stats.total_users || 0}</div>
                     </div>
                 </div>
                 <div class="kpi-card teal">
-                    <div class="kpi-icon">⚡</div>
                     <div>
                         <div class="kpi-label">Active (24h)</div>
                         <div class="kpi-value">${stats.active_24h || 0}</div>
                     </div>
                 </div>
                 <div class="kpi-card orange">
-                    <div class="kpi-icon">🛡️</div>
                     <div>
                         <div class="kpi-label">Risks Deflected</div>
                         <div class="kpi-value">${stats.blocked_ips || 0}</div>
                     </div>
                 </div>
                 <div class="kpi-card red">
-                    <div class="kpi-icon">⚠️</div>
                     <div>
                         <div class="kpi-label">Failed Logins</div>
                         <div class="kpi-value">${stats.failed_logins || 0}</div>
@@ -454,7 +449,7 @@
                 <div><strong>Identity:</strong> ${user.username}</div>
                 <div><strong>Network:</strong> ${data.ip || 'Unknown'}</div>
                 <div><strong>Location:</strong> ${data.country || 'Unknown'}</div>
-                <div><strong>Policy Check:</strong> ${risk.level === 'High' ? '⚠️ Strict' : '✅ Standard'}</div>
+                <div><strong>Policy Check:</strong> ${risk.level === 'High' ? 'Strict Enforcement' : 'Standard Baseline'}</div>
                 <div style="margin-top:5px;">
                     <span class="role-badge">${sec.deviceBound ? 'Device-Bound' : 'Loose Session'}</span>
                     <span class="role-badge">${sec.sessionToken === 'active' ? 'Tokenized' : 'Legacy'}</span>
@@ -468,16 +463,16 @@
             let html = '';
 
             if (perms.includes('manage_users')) {
-                html += `<a href="/mapping" class="action-item"><i>👤</i><div>Users</div></a>`;
+                html += `<a href="/mapping" class="action-item"><div>Users</div></a>`;
             }
             if (perms.includes('view_monitoring')) {
-                html += `<a href="/live-monitoring" class="action-item"><i>📡</i><div>Monitor</div></a>`;
+                html += `<a href="/live-monitoring" class="action-item"><div>Monitor</div></a>`;
             }
             if (perms.includes('analyze_risk')) {
-                html += `<a href="/risk" class="action-item"><i>📊</i><div>Risk</div></a>`;
+                html += `<a href="/risk" class="action-item"><div>Risk</div></a>`;
             }
             if (perms.includes('manage_network')) {
-                html += `<a href="/network" class="action-item"><i>🌐</i><div>Network</div></a>`;
+                html += `<a href="/network" class="action-item"><div>Network</div></a>`;
             }
 
             container.innerHTML = html || '<p style="color:#aaa; font-size:0.75rem;">No administrative actions permited.</p>';
