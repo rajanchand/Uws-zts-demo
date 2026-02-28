@@ -6,6 +6,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mapping - ZTS</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Modern Switch Styling */
+        .switch-container {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch-container input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e2e8f0;
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        input:checked + .slider {
+            background-color: #1a73e8;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        .slider.locked {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+    </style>
 </head>
 
 <body>
@@ -601,9 +654,9 @@
         }
 
         async function showUserPermissions(username, role) {
-            document.getElementById('permModalUser').textContent = `Role Permissions: ${role} (${username})`;
+            document.getElementById('permModalUser').textContent = `Policy Control Center: ${role}`;
             const list = document.getElementById('permModalList');
-            list.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">Inspecting matrix...</div>';
+            list.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">Loading Matrix...</div>';
             document.getElementById('viewPermissionsModal').style.display = 'flex';
             
             try {
@@ -612,35 +665,54 @@
                 const perms = data.matrix[role];
                 
                 if (!perms) {
-                    list.innerHTML = `<div style="text-align:center; padding:20px; color:#e74c3c;">No permissions defined for role "${role}".</div>`;
+                    list.innerHTML = `<div style="text-align:center; padding:30px; color:#e74c3c;">Role "${role}" not found in matrix.</div>`;
                     return;
                 }
 
                 const canEdit = (window.userRole === 'SuperAdmin' && role !== 'SuperAdmin');
-                let html = role === 'SuperAdmin' 
-                    ? '<div style="padding:10px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; font-size:0.75rem; color:#15803d; margin-bottom:15px;">SuperAdmin role has all permissions unlocked by default.</div>'
-                    : `<div style="padding:10px; background:#fff7ed; border:1px solid #ffedd5; border-radius:6px; font-size:0.75rem; color:#9a3412; margin-bottom:15px;">
-                        <strong>Note:</strong> Changes here apply to <strong>ALL</strong> users with the <strong>${role}</strong> role.
-                       </div>`;
+                let html = '';
+                
+                if (role === 'SuperAdmin') {
+                    html = '<div style="padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; font-size:0.8rem; color:#15803d; margin-bottom:20px; display:flex; gap:10px; align-items:center;"><span>🛡️</span> SuperAdmin role has absolute authority (Locked).</div>';
+                } else {
+                    html = `<div style="padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; font-size:0.75rem; color:#64748b; margin-bottom:20px;">
+                                <strong>NIST SP 800-207:</strong> Policy changes made here update the <strong>Policy Engine (PE)</strong> global entitlements for the <strong>${role}</strong> role.
+                            </div>`;
+                }
+
+                const permIcons = {
+                    manage_users: '👤', delete_users: '🗑️', reset_passwords: '🔑',
+                    approve_devices: '📱', manage_depts: '🏢', view_monitoring: '📡',
+                    analyze_risk: '🧠', manage_network: '🌐', view_posture: '📊'
+                };
 
                 perms.forEach(p => {
                     const has = (role === 'SuperAdmin') ? true : p.is_granted;
-                    const disabled = !canEdit ? 'disabled' : '';
-                    const checked = has ? 'checked' : '';
+                    const disabledStr = !canEdit ? 'disabled' : '';
+                    const checkedStr = has ? 'checked' : '';
+                    const icon = permIcons[p.permission_key] || '📄';
                     
                     html += `
-                        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; border-bottom:1px solid #f1f5f9;">
-                            <label style="font-size:0.9rem; color:#334155; cursor:${canEdit ? 'pointer' : 'default'}">
-                                ${p.permission_name}
+                        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1px solid #f1f5f9; border-radius:12px; margin-bottom:8px; background:#fff; transition:all 0.2s;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div style="width:36px; height:36px; border-radius:8px; background:#f8fafc; display:flex; align-items:center; justify-content:center; font-size:1.1rem; border:1px solid #f1f5f9;">
+                                    ${icon}
+                                </div>
+                                <div style="display:flex; flex-direction:column;">
+                                    <span style="font-size:0.88rem; font-weight:600; color:#1e293b;">${p.permission_name}</span>
+                                    <span style="font-size:0.7rem; color:#94a3b8;">${p.permission_key}</span>
+                                </div>
+                            </div>
+                            <label class="switch-container">
+                                <input type="checkbox" ${checkedStr} ${disabledStr} 
+                                       onchange="togglePermission('${role}', '${p.permission_key}', this)">
+                                <span class="slider ${!canEdit ? 'locked' : ''}"></span>
                             </label>
-                            <input type="checkbox" ${checked} ${disabled} 
-                                   style="width:18px; height:18px; cursor:${canEdit ? 'pointer' : 'not-allowed'}"
-                                   onchange="togglePermission('${role}', '${p.permission_key}', this)">
                         </div>`;
                 });
                 list.innerHTML = html;
             } catch (err) {
-                list.innerHTML = '<div style="text-align:center; padding:20px; color:#e74c3c;">Matrix error.</div>';
+                list.innerHTML = '<div style="text-align:center; padding:30px; color:#e74c3c;">Failed to sync with Matrix API.</div>';
             }
         }
 
