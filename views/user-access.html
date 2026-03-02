@@ -1,114 +1,232 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Access Control - ZTS</title>
+    <title>Policy Matrix - ZTS</title>
     <link rel="stylesheet" href="/css/style.css">
     <style>
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h2 {
+            font-size: 1.5rem;
+            color: #1e293b;
+            margin-bottom: 6px;
+        }
+
+        .page-header p {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        /* Responsive Matrix Wrapper */
+        .matrix-container {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            position: relative;
+        }
+
         .access-matrix {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            background: white;
+            font-size: 0.85rem;
+            min-width: 1100px; /* Force minimum width to prevent squashing */
         }
-        .access-matrix th, .access-matrix td {
-            padding: 12px;
-            text-align: center;
-            border: 1px solid #ddd;
-        }
+
         .access-matrix th {
-            background: #eee;
-            font-size: 0.9rem;
+            background: #f8fafc;
+            padding: 16px 12px;
+            text-align: center;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            font-size: 0.68rem;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #e2e8f0;
+            border-right: 1px solid #f1f5f9;
         }
-        .role-name {
+
+        .access-matrix td {
+            padding: 14px 12px;
+            text-align: center;
+            border-bottom: 1px solid #f1f5f9;
+            border-right: 1px solid #f1f5f9;
+        }
+
+        .role-column {
             text-align: left !important;
-            font-weight: bold;
-            background: #f9f9f9;
+            font-weight: 700;
+            color: #1e293b;
+            background: #f8fafc;
+            width: 180px;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            border-right: 2px solid #e2e8f0 !important;
         }
-        .toggle {
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            font-size: 1.1rem;
             cursor: pointer;
-            font-size: 1.2rem;
-            font-weight: bold;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+            user-select: none;
         }
-        .check { color: green; }
-        .cross { color: red; opacity: 0.3; }
-        .cross:hover { opacity: 1; }
-        .admin-only { opacity: 0.5; cursor: default; }
+
+        .status-badge.granted {
+            background: #f0fdf4;
+            color: #16a34a;
+            border-color: #bbf7d0;
+        }
+
+        .status-badge.denied {
+            background: #fef2f2;
+            color: #ef4444;
+            border-color: #fecaca;
+            opacity: 0.4;
+        }
+
+        .status-badge:hover:not(.sa) {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            opacity: 1;
+        }
+
+        .status-badge.sa {
+            cursor: default;
+            opacity: 0.6;
+        }
+
+        /* NIST Meta */
+        .nist-pdp-box {
+            margin-top: 24px;
+            background: #fafafa;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
     </style>
 </head>
+
 <body>
     <nav class="navbar">
         <button class="menu-toggle">☰</button>
-        <a href="/dashboard" class="navbar-brand">ZTS Security</a>
+        <a href="/dashboard" class="navbar-brand"><span>ZTS</span> Zero Trust</a>
         <div class="nav-menu" id="mainNav"></div>
         <div class="user-menu" id="userMenu"></div>
     </nav>
 
     <div class="container">
-        <div class="card">
-            <h2>Role Permissions Matrix</h2>
-            <p>Manage what each role can do. Click the icons to toggle access. <br>
-                <span style="display:inline-block; margin-top:8px; padding:4px 8px; background:#e8f5e9; color:#2e7d32; border-radius:4px; font-size:0.85rem; font-weight:500;">
-                    ✓ Changes are saved instantly and automatically
-                </span>
-            </p>
+        <div class="page-header">
+            <h2>Role Entitlement Matrix</h2>
+            <p>Define global resource permissions for the <strong>Policy Engine (PE)</strong>.</p>
+        </div>
 
-            <table class="access-matrix">
-                <thead id="head"></thead>
-                <tbody id="body">
-                    <tr><td colspan="10">Loading...</td></tr>
-                </tbody>
-            </table>
+        <div class="card" style="padding: 0; overflow: hidden;">
+            <div class="matrix-container">
+                <table class="access-matrix">
+                    <thead>
+                        <tr id="head"></tr>
+                    </thead>
+                    <tbody id="body">
+                        <tr>
+                            <td colspan="10" style="padding: 40px; color: #94a3b8; font-style: italic;">
+                                Synchronizing with Policy Database...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="nist-pdp-box">
+            <div style="font-size: 1.8rem; opacity: 0.8;">⚙️</div>
+            <div style="font-size: 0.8rem; color: #475569; line-height: 1.6;">
+                <strong>NIST SP 800-207: Policy Decision Point (PDP)</strong><br>
+                This matrix serves as the administrative interface for the <strong>PDP</strong>. Changes here modify the trust algorithm's baseline rules, which the <strong>Policy Enforcement Point (PEP)</strong> then applies to all live requests.
+            </div>
         </div>
     </div>
 
     <script src="/js/app.js?v=2"></script>
     <script>
-        async function load() {
-            const s = await (await fetch('/api/session')).json();
-            if (!s.loggedIn) return location.href = '/login';
-            
-            buildNavbar(s.user.role, 'user-access', s.user.username, s.user.permissions);
-            
-            const res = await fetch('/api/rbac/matrix');
-            const { matrix } = await res.json();
-            
+        /**
+         * Matrix Sync Logic
+         */
+        async function loadMatrix() {
+            const session = await (await fetch('/api/session')).json();
+            if (!session.loggedIn) return location.href = '/login';
+
+            buildNavbar(session.user.role, 'user-access', session.user.username, session.user.permissions);
+
+            const { matrix } = await (await fetch('/api/rbac/matrix')).json();
             const roles = Object.keys(matrix).sort();
             const perms = matrix[roles[0]];
 
-            // Header
-            let h = '<tr><th class="role-name">Role</th>';
-            perms.forEach(p => h += `<th>${p.permission_name}</th>`);
-            document.getElementById('head').innerHTML = h + '</tr>';
+            // Render Head
+            let headHtml = '<th class="role-column">System Role</th>';
+            perms.forEach(p => headHtml += `<th>${p.permission_name}</th>`);
+            document.getElementById('head').innerHTML = headHtml;
 
-            // Body
-            let b = '';
+            // Render Body
+            let bodyHtml = '';
             roles.forEach(role => {
-                const isSA = role === 'SuperAdmin';
-                b += `<tr><td class="role-name">${role}</td>`;
+                const isSA = (role === 'SuperAdmin');
+                bodyHtml += `<tr><td class="role-column">${role.replace(/([A-Z])/g, ' $1').trim()}</td>`;
+                
                 matrix[role].forEach(p => {
-                    const icon = p.is_granted ? '✓' : '✗';
-                    const cls = p.is_granted ? 'check' : 'cross';
-                    const action = isSA ? '' : `onclick="toggle('${role}', '${p.permission_key}', ${p.is_granted})"`;
+                    const icon = p.is_granted ? '✓' : '✕';
+                    const cls = p.is_granted ? 'granted' : 'denied';
+                    const action = isSA ? '' : `onclick="togglePolicy('${role}', '${p.permission_key}', ${p.is_granted})"`;
                     
-                    b += `<td><span class="${cls} ${isSA ? 'admin-only' : 'toggle'}" ${action}>${icon}</span></td>`;
+                    bodyHtml += `
+                        <td>
+                            <div class="status-badge ${cls} ${isSA ? 'sa' : ''}" ${action} title="${p.permission_name}: ${role}">
+                                ${icon}
+                            </div>
+                        </td>`;
                 });
-                b += '</tr>';
+                bodyHtml += '</tr>';
             });
-            document.getElementById('body').innerHTML = b;
+            document.getElementById('body').innerHTML = bodyHtml;
         }
 
-        async function toggle(role, key, status) {
-            const res = await postJSON('/api/rbac/toggle', { role, permission_key: key, is_granted: !status });
-            if (res.success) {
-                showToast('Updated');
-                load();
+        async function togglePolicy(role, key, currentStatus) {
+            try {
+                const res = await postJSON('/api/rbac/toggle', { 
+                    role, 
+                    permission_key: key, 
+                    is_granted: !currentStatus 
+                });
+                if (res.success) {
+                    showToast(`Policy Updated: ${role} [${key}]`, 'success');
+                    loadMatrix();
+                } else {
+                    showToast(res.message || 'Error updating policy', 'error');
+                }
+            } catch (e) {
+                showToast('API Connection Error', 'error');
             }
         }
 
-        load();
+        loadMatrix();
     </script>
 </body>
-</html>
+
 </html>
