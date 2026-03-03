@@ -130,7 +130,12 @@
             if (d.history && d.history.length) {
                 tb.innerHTML = '';
                 d.history.forEach(function (r) {
-                    var f = JSON.parse(r.factors_json || '[]').map(function (x) { return x.factor; }).join(', ') || 'None';
+                    var fj = r.factors_json || '[]';
+                    var f;
+                    try {
+                        var parsed = typeof fj === 'string' ? JSON.parse(fj) : fj;
+                        f = Array.isArray(parsed) ? parsed.map(function(x) { return typeof x === 'string' ? x : x.factor || ''; }).join(', ') : 'None';
+                    } catch(e) { f = 'None'; }
                     var lc = r.level === 'Low' ? 'risk-low' : r.level === 'Medium' ? 'risk-medium' : 'risk-high';
                     var tr = document.createElement('tr');
                     tr.innerHTML = '<td><strong>' + r.score + '</strong></td><td><span class="risk-badge ' + lc + '">' + r.level + '</span></td><td style="font-size:0.8rem;">' + f + '</td><td>' + formatDate(r.created_at) + '</td>';

@@ -72,7 +72,7 @@ async function calculateRisk(params) {
         factors.push({ factor: 'Login outside typical business hours', points: RISK_WEIGHTS.UNUSUAL_HOURS });
     }
 
-    // 7. Behavioral Anomaly: Impossible Travel (Distinction Feature)
+    // 7. Behavioral Anomaly: Impossible Travel
     if (params.isImpossibleTravel) {
         score += RISK_WEIGHTS.IMPOSSIBLE_TRAVEL;
         factors.push({ factor: 'Impossible Travel (Velocity Violation)', points: RISK_WEIGHTS.IMPOSSIBLE_TRAVEL });
@@ -99,7 +99,7 @@ async function calculateRisk(params) {
             ip: params.ip || '',
             risk_score: score,
             details: { level: level, factors: factors, role: params.role }
-        }).catch(() => {});
+        }).catch(() => { });
     }
 
     return { score, level, factors };

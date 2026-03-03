@@ -125,7 +125,9 @@
                     </tbody>
                 </table>
             </div>
-        <div class="card" style="border: 1px solid #e2e8f0; background: #fafafa; display: flex; align-items: center; gap: 20px; margin-top: 20px;">
+        </div>
+
+        <div class="card" style="border: 1px solid #e2e8f0; background: #fafafa; display: flex; align-items: center; gap: 20px;">
             <div style="font-size: 0.78rem; color: #475569; line-height: 1.6;">
                 <strong>Architecture: Policy Administrator (PA)</strong><br>
                 This interface functions as the <strong>Policy Administrator</strong> (NIST SP 800-207). It manages identities and access entitlements that the <strong>Policy Engine</strong> uses to enforce Zero Trust principles.
@@ -673,35 +675,23 @@
                 let html = '';
                 
                 if (role === 'SuperAdmin') {
-                    html = '<div style="padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; font-size:0.8rem; color:#15803d; margin-bottom:20px; display:flex; gap:10px; align-items:center;"><span>🛡️</span> SuperAdmin role has absolute authority (Locked).</div>';
-                } else {
-                    html = `<div style="padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; font-size:0.75rem; color:#64748b; margin-bottom:20px;">
-                                <strong>NIST SP 800-207:</strong> Policy changes made here update the <strong>Policy Engine (PE)</strong> global entitlements for the <strong>${role}</strong> role.
+                    html = '<div style="padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; font-size:0.8rem; color:#15803d; margin-bottom:16px;">SuperAdmin has all permissions (Locked).</div>';
+                } else if (canEdit) {
+                    html = `<div style="padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:0.78rem; color:#64748b; margin-bottom:16px;">
+                                Changes apply to <strong>all</strong> users with the <strong>${role}</strong> role.
                             </div>`;
                 }
-
-                const permIcons = {
-                    manage_users: '👤', delete_users: '🗑️', reset_passwords: '🔑',
-                    approve_devices: '📱', manage_depts: '🏢', view_monitoring: '📡',
-                    analyze_risk: '🧠', manage_network: '🌐', view_posture: '📊'
-                };
 
                 perms.forEach(p => {
                     const has = (role === 'SuperAdmin') ? true : p.is_granted;
                     const disabledStr = !canEdit ? 'disabled' : '';
                     const checkedStr = has ? 'checked' : '';
-                    const icon = permIcons[p.permission_key] || '📄';
                     
                     html += `
-                        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1px solid #f1f5f9; border-radius:12px; margin-bottom:8px; background:#fff; transition:all 0.2s;">
-                            <div style="display:flex; align-items:center; gap:12px;">
-                                <div style="width:36px; height:36px; border-radius:8px; background:#f8fafc; display:flex; align-items:center; justify-content:center; font-size:1.1rem; border:1px solid #f1f5f9;">
-                                    ${icon}
-                                </div>
-                                <div style="display:flex; flex-direction:column;">
-                                    <span style="font-size:0.88rem; font-weight:600; color:#1e293b;">${p.permission_name}</span>
-                                    <span style="font-size:0.7rem; color:#94a3b8;">${p.permission_key}</span>
-                                </div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #f1f5f9;">
+                            <div>
+                                <div style="font-size:0.85rem; font-weight:600; color:#1e293b;">${p.permission_name}</div>
+                                <div style="font-size:0.68rem; color:#94a3b8;">${p.permission_key}</div>
                             </div>
                             <label class="switch-container">
                                 <input type="checkbox" ${checkedStr} ${disabledStr} 
@@ -718,25 +708,20 @@
 
         async function togglePermission(role, key, el) {
             try {
-                const res = await fetch('/api/rbac/toggle', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        role: role,
-                        permission_key: key,
-                        is_granted: el.checked
-                    })
+                const data = await postJSON('/api/rbac/toggle', {
+                    role: role,
+                    permission_key: key,
+                    is_granted: el.checked
                 });
-                const data = await res.json();
                 if (data.success) {
-                    showToast(`Updated ${role} policy: ${key}`, 'success');
+                    showToast('Policy updated', 'success');
                 } else {
-                    el.checked = !el.checked; // Revert UI
-                    showToast(data.error || 'Failed to update policy', 'error');
+                    el.checked = !el.checked;
+                    showToast(data.error || 'Failed to update', 'error');
                 }
             } catch (err) {
                 el.checked = !el.checked;
-                showToast('Network error updating policy', 'error');
+                showToast('Network error', 'error');
             }
         }
 
