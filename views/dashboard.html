@@ -450,10 +450,6 @@
                 <div><strong>Network:</strong> ${data.ip || 'Unknown'}</div>
                 <div><strong>Location:</strong> ${data.country || 'Unknown'}</div>
                 <div><strong>Policy Check:</strong> ${risk.level === 'High' ? 'Strict Enforcement' : 'Standard Baseline'}</div>
-                <div style="margin-top:5px;">
-                    <span class="role-badge">${sec.deviceBound ? 'Device-Bound' : 'Loose Session'}</span>
-                    <span class="role-badge">${sec.sessionToken === 'active' ? 'Tokenized' : 'Legacy'}</span>
-                </div>
             `;
         }
 
