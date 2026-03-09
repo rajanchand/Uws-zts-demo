@@ -150,7 +150,8 @@ function buildNavbar(role, activePage, username, permissions = []) {
                 <div class="dropdown-menu">
                     ${(permissions.includes('manage_users') || permissions.includes('manage_depts') || permissions.includes('view_monitoring')) ? 
                         `<a href="/mapping" ${activePage === 'mapping' ? 'class="active"' : ''}>User Management</a>` : ''}
-                    ${role === 'SuperAdmin' ? `<a href="/mapping/user-access" ${activePage === 'user-access' ? 'class="active"' : ''}>User Access</a>` : ''}
+                    ${role === 'SuperAdmin' || role === 'Owner' ? `<a href="/mapping/user-access" ${activePage === 'user-access' ? 'class="active"' : ''}>User Access</a>` : ''}
+                    ${permissions.includes('view_monitoring') ? `<a href="/admin/live-monitoring" ${activePage === 'live-monitoring' ? 'class="active"' : ''}>Live Monitoring</a>` : ''}
                     ${permissions.includes('approve_devices') ? `<a href="/register-device" ${activePage === 'register-device' ? 'class="active"' : ''}>Register Device</a>` : ''}
                 </div>
             </div>

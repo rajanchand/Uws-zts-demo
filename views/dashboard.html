@@ -261,7 +261,7 @@
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                         <h3 style="margin:0;">Recent Security Events</h3>
-                        <a href="/live-monitoring" class="btn btn-outline btn-sm" id="liveMonitorBtn">Live Monitor</a>
+                        <a href="/admin/live-monitoring" class="btn btn-outline btn-sm" id="liveMonitorBtn">Live Monitor</a>
                     </div>
                     <div id="recentEvents">
                         <p style="color:#aaa; font-size:0.82rem; text-align:center; padding:20px;">Fetching logs...</p>
@@ -331,8 +331,8 @@
 
                 buildNavbar(data.user.role, 'dashboard', data.user.username, data.user.permissions);
                 
-                // Show/Hide admin-only components
-                if (data.user.role !== 'SuperAdmin' && data.user.role !== 'IT') {
+                // Show/Hide admin-only components (Now includes Owner role)
+                if (data.user.role !== 'SuperAdmin' && data.user.role !== 'Owner' && data.user.role !== 'IT') {
                     if (document.getElementById('kpiGrid')) document.getElementById('kpiGrid').classList.add('hidden');
                     if (document.getElementById('actionCard')) document.getElementById('actionCard').classList.add('hidden');
                     if (document.getElementById('roleCard')) document.getElementById('roleCard').classList.add('hidden');

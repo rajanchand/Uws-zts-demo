@@ -6,6 +6,7 @@
  */
 
 const { supabase } = require('../db');
+const { logSecurityEvent } = require('../services/monitorService');
 
 const RISK_WEIGHTS = {
     NEW_DEVICE: 30,
