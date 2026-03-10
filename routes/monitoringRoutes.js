@@ -14,6 +14,9 @@ router.get('/admin/live-monitoring', requirePermission('view_monitoring'), funct
     res.sendFile(path.join(__dirname, '..', 'views', 'live-monitoring.html'));
 });
 
+// redirect old route to new one
+router.get('/live-monitoring', (req, res) => res.redirect('/admin/live-monitoring'));
+
 // SSE stream — browser connects here and receives live events
 router.get('/api/monitor/stream', requirePermission('view_monitoring'), function (req, res) {
     res.setHeader('Content-Type', 'text/event-stream');
