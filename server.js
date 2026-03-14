@@ -99,7 +99,7 @@ app.get('/mapping/user-access', (req, res) => {
 });
 app.use('/', rbacRoutes);
 app.use('/', mappingRoutes);
-app.use('/', requirePermission('view_monitoring'), monitoringRoutes);
+app.use('/', monitoringRoutes);
 app.use('/', requirePermission('manage_network'), networkRoutes);
 app.use('/', requirePermission('view_posture'), securityPostureRoutes);
 

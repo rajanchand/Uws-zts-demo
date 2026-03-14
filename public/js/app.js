@@ -136,15 +136,29 @@ function buildNavbar(role, activePage, username, permissions = []) {
         `;
     }
 
-    // Monitoring & Risk (Consolidated Admin Tools)
-    if (permissions.includes('view_monitoring') || permissions.includes('analyze_risk')) {
-        const monitorActive = (activePage === 'live-monitoring' || activePage === 'risk') ? 'active' : '';
+    // Live Monitor — top-level direct link (no dropdown), shown if user has view_monitoring
+    if (permissions.includes('view_monitoring')) {
+        const isActive = activePage === 'live-monitoring';
         html += `
-            <div class="nav-item ${monitorActive}">
-                <button class="nav-link ${monitorActive}" onclick="toggleDropdown(this)">Monitoring <span class="arrow">▾</span></button>
+            <div class="nav-item ${isActive ? 'active' : ''}">
+                <a href="/admin/live-monitoring" class="nav-link ${isActive ? 'active' : ''}">
+                    <span style="display:inline-flex;align-items:center;gap:5px;">
+                        <span style="width:7px;height:7px;border-radius:50%;background:#27ae60;display:inline-block;animation:blink 1.4s infinite;"></span>
+                        Live Monitor
+                    </span>
+                </a>
+            </div>
+        `;
+    }
+
+    // Security / Risk Analysis dropdown
+    if (permissions.includes('analyze_risk')) {
+        const isActive = activePage === 'risk';
+        html += `
+            <div class="nav-item ${isActive ? 'active' : ''}">
+                <button class="nav-link ${isActive ? 'active' : ''}" onclick="toggleDropdown(this)">Security <span class="arrow">▾</span></button>
                 <div class="dropdown-menu">
-                    ${permissions.includes('view_monitoring') ? `<a href="/admin/live-monitoring" ${activePage === 'live-monitoring' ? 'class="active"' : ''}>Live Monitoring</a>` : ''}
-                    ${permissions.includes('analyze_risk') ? `<a href="/risk" ${activePage === 'risk' ? 'class="active"' : ''}>System Risk</a>` : ''}
+                    <a href="/risk" ${isActive ? 'class="active"' : ''}>System Risk</a>
                 </div>
             </div>
         `;
