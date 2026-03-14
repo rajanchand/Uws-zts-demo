@@ -136,38 +136,39 @@ function buildNavbar(role, activePage, username, permissions = []) {
         `;
     }
 
-    // Mapping & User Registry (Requires various admin/monitoring powers)
-    const canSeeMapping = permissions.includes('manage_users') || 
-                         permissions.includes('manage_depts') || 
-                         permissions.includes('approve_devices') || 
-                         permissions.includes('view_monitoring');
-
-    if (canSeeMapping) {
-        const active = (activePage === 'mapping' || activePage === 'register-device' || activePage === 'live-monitoring') ? 'active' : '';
+    // Monitoring & Risk (Consolidated Admin Tools)
+    if (permissions.includes('view_monitoring') || permissions.includes('analyze_risk')) {
+        const monitorActive = (activePage === 'live-monitoring' || activePage === 'risk') ? 'active' : '';
         html += `
-            <div class="nav-item ${active}">
-                <button class="nav-link ${active}" onclick="toggleDropdown(this)">Mapping <span class="arrow">▾</span></button>
+            <div class="nav-item ${monitorActive}">
+                <button class="nav-link ${monitorActive}" onclick="toggleDropdown(this)">Monitoring <span class="arrow">▾</span></button>
                 <div class="dropdown-menu">
-                    ${(permissions.includes('manage_users') || permissions.includes('manage_depts') || permissions.includes('view_monitoring')) ? 
-                        `<a href="/mapping" ${activePage === 'mapping' ? 'class="active"' : ''}>User Management</a>` : ''}
-                    ${role === 'SuperAdmin' || role === 'Owner' ? `<a href="/mapping/user-access" ${activePage === 'user-access' ? 'class="active"' : ''}>User Access</a>` : ''}
                     ${permissions.includes('view_monitoring') ? `<a href="/admin/live-monitoring" ${activePage === 'live-monitoring' ? 'class="active"' : ''}>Live Monitoring</a>` : ''}
-                    ${permissions.includes('approve_devices') ? `<a href="/register-device" ${activePage === 'register-device' ? 'class="active"' : ''}>Register Device</a>` : ''}
+                    ${permissions.includes('analyze_risk') ? `<a href="/risk" ${activePage === 'risk' ? 'class="active"' : ''}>System Risk</a>` : ''}
                 </div>
             </div>
         `;
     }
 
-    // Security & Risk Telemetry
-    const securityActive = (activePage === 'risk') ? 'active' : '';
-    html += `
-        <div class="nav-item ${securityActive}">
-            <button class="nav-link ${securityActive}" onclick="toggleDropdown(this)">Security <span class="arrow">▾</span></button>
-            <div class="dropdown-menu">
-                <a href="/risk" ${activePage === 'risk' ? 'class="active"' : ''}>Risk Score</a>
+    // Mapping & User Registry
+    const canSeeMapping = permissions.includes('manage_users') || 
+                         permissions.includes('manage_depts') || 
+                         permissions.includes('approve_devices');
+
+    if (canSeeMapping) {
+        const active = (activePage === 'mapping' || activePage === 'register-device' || activePage === 'user-access') ? 'active' : '';
+        html += `
+            <div class="nav-item ${active}">
+                <button class="nav-link ${active}" onclick="toggleDropdown(this)">Mapping <span class="arrow">▾</span></button>
+                <div class="dropdown-menu">
+                    ${(permissions.includes('manage_users') || permissions.includes('manage_depts')) ? 
+                        `<a href="/mapping" ${activePage === 'mapping' ? 'class="active"' : ''}>User Management</a>` : ''}
+                    ${role === 'SuperAdmin' || role === 'Owner' ? `<a href="/mapping/user-access" ${activePage === 'user-access' ? 'class="active"' : ''}>User Access</a>` : ''}
+                    ${permissions.includes('approve_devices') ? `<a href="/register-device" ${activePage === 'register-device' ? 'class="active"' : ''}>Register Device</a>` : ''}
+                </div>
             </div>
-        </div>
-    `;
+        `;
+    }
 
     nav.innerHTML = html;
 

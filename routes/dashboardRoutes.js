@@ -18,6 +18,7 @@ const dashboardContent = {
         description: 'Full system access. Manage users, view all logs, monitor the platform.',
         cards: [
             { icon: 'U', title: 'User Management', description: 'View and manage user accounts', link: '/mapping' },
+            { icon: 'M', title: 'Live Monitoring', description: 'Real-time security events & logs', link: '/admin/live-monitoring' },
             { icon: 'R', title: 'System Risk', description: 'Monitor risk scores across users', link: '/risk' },
             { icon: 'A', title: 'Audit Trail', description: 'Complete security event log', link: '/mapping' },
             { icon: 'D', title: 'Device Registry', description: 'Manage registered devices', link: '/register-device' },
@@ -77,7 +78,7 @@ router.get('/api/dashboard-data', async (req, res) => {
         let roleStats = null;
         let recentEvents = null;
 
-        if (role === 'SuperAdmin' || role === 'IT') {
+        if (role === 'SuperAdmin' || role === 'IT' || role === 'Owner') {
             const monitorStats = await getStats24h();
             const { count: totalUsers } = await supabase.from('users').select('*', { count: 'exact', head: true });
             

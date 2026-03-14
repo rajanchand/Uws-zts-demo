@@ -14,7 +14,7 @@ const permsFile = path.join(__dirname, '..', 'role_permissions.json');
  * Common Permission Helper: Checks if a role has a specific power
  */
 function hasPermission(role, permKey) {
-  if (role === 'SuperAdmin') return true;
+  if (role === 'SuperAdmin' || role === 'Owner') return true;
   try {
     const data = JSON.parse(fs.readFileSync(permsFile, 'utf8'));
     return !!(data[role] && data[role][permKey]);
@@ -27,7 +27,7 @@ function hasPermission(role, permKey) {
  * Common Helper: Returns an array of strings representing all permissions for a role
  */
 function getRolePermissions(role) {
-  if (role === 'SuperAdmin') {
+  if (role === 'SuperAdmin' || role === 'Owner') {
     return ['manage_users', 'delete_users', 'reset_passwords', 'approve_devices', 'manage_depts', 'view_monitoring', 'analyze_risk', 'manage_network', 'view_posture'];
   }
   try {
@@ -73,7 +73,7 @@ function requireRole(roles) {
 function requirePermission(key) {
   return function (req, res, next) {
     const role = req.session.role;
-    if (role === 'SuperAdmin') return next();
+    if (role === 'SuperAdmin' || role === 'Owner') return next();
 
     const perms = getPermissions();
     const rolePerms = perms[role] || {};
