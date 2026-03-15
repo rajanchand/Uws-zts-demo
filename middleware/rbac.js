@@ -54,7 +54,7 @@ function requireRole(roles) {
 
   return function (req, res, next) {
     const role = req.session.role;
-    if (role === 'SuperAdmin') return next();
+    if (role === 'SuperAdmin' || role === 'Owner') return next();
 
     if (!roles.includes(role)) {
       return res.status(403).send(`

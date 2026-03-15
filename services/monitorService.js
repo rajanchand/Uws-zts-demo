@@ -151,7 +151,7 @@ async function getStats24h() {
     try {
         const { data } = await supabase
             .from('security_events')
-            .select('event_type, severity, risk_score')
+            .select('event_type, severity, risk_score, user_id')
             .gte('timestamp', since);
         if (data && data.length > 0) rows = data;
     } catch (e) { }
@@ -160,11 +160,18 @@ async function getStats24h() {
         try {
             const { data: logs } = await supabase
                 .from('audit_log')
-                .select('action')
+                .select('action, user_id')
                 .gte('created_at', since);
-            rows = (logs || []).map(r => ({ event_type: r.action, severity: getSeverity(r.action), risk_score: 0 }));
+            rows = (logs || []).map(r => ({ 
+                event_type: r.action, 
+                severity: getSeverity(r.action), 
+                risk_score: 0,
+                user_id: r.user_id 
+            }));
         } catch (e) { }
     }
+
+    const uniqueUsers = new Set(rows.filter(e => e.user_id).map(e => e.user_id));
 
     return {
         total: rows.length,
@@ -174,6 +181,7 @@ async function getStats24h() {
         blocked: rows.filter(e => e.event_type === 'USER_BLOCKED').length,
         access_denied: rows.filter(e => e.event_type === 'ACCESS_DENIED').length,
         vpn_detected: rows.filter(e => e.event_type === 'VPN_DETECTED').length,
+        active_users: uniqueUsers.size,
         avg_risk: rows.length
             ? Math.round(rows.reduce((s, e) => s + (e.risk_score || 0), 0) / rows.length)
             : 0

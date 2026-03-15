@@ -62,7 +62,7 @@ async function calculateRisk(params) {
     }
 
     // 5. Privileged Access
-    if (params.isAdminUnknownIP && (params.role === 'SuperAdmin' || params.role === 'IT')) {
+    if (params.isAdminUnknownIP && (params.role === 'SuperAdmin' || params.role === 'IT' || params.role === 'Owner')) {
         score += RISK_WEIGHTS.ADMIN_UNKNOWN_IP;
         factors.push({ factor: 'Admin Login from Unknown IP', points: RISK_WEIGHTS.ADMIN_UNKNOWN_IP });
     }

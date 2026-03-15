@@ -37,7 +37,7 @@ router.get('/api/rbac/matrix', async (req, res) => {
   }
 });
 
-router.post('/api/rbac/toggle', requireRole('SuperAdmin'), async (req, res) => {
+router.post('/api/rbac/toggle', requireRole(['SuperAdmin', 'Owner']), async (req, res) => {
   const { role, permission_key, is_granted } = req.body;
   if (!role || !permission_key) return res.sendStatus(400);
 

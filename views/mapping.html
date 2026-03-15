@@ -671,11 +671,11 @@
                     return;
                 }
 
-                const canEdit = (window.userRole === 'SuperAdmin' && role !== 'SuperAdmin');
+                const canEdit = (window.userRole === 'SuperAdmin' || window.userRole === 'Owner') && (role !== 'SuperAdmin' && role !== 'Owner');
                 let html = '';
                 
-                if (role === 'SuperAdmin') {
-                    html = '<div style="padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; font-size:0.8rem; color:#15803d; margin-bottom:16px;">SuperAdmin has all permissions (Locked).</div>';
+                if (role === 'SuperAdmin' || role === 'Owner') {
+                    html = `<div style="padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; font-size:0.8rem; color:#15803d; margin-bottom:16px;">${role} has all permissions (Locked).</div>`;
                 } else if (canEdit) {
                     html = `<div style="padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:0.78rem; color:#64748b; margin-bottom:16px;">
                                 Changes apply to <strong>all</strong> users with the <strong>${role}</strong> role.
@@ -683,7 +683,7 @@
                 }
 
                 perms.forEach(p => {
-                    const has = (role === 'SuperAdmin') ? true : p.is_granted;
+                    const has = (role === 'SuperAdmin' || role === 'Owner') ? true : p.is_granted;
                     const disabledStr = !canEdit ? 'disabled' : '';
                     const checkedStr = has ? 'checked' : '';
                     

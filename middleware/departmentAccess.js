@@ -3,8 +3,8 @@
 
 function requireDepartment(allowedDepartments) {
     return function (req, res, next) {
-        // SuperAdmin bypasses all department restrictions
-        if (req.session.role === 'SuperAdmin') {
+        // SuperAdmin/Owner bypasses all department restrictions
+        if (req.session.role === 'SuperAdmin' || req.session.role === 'Owner') {
             return next();
         }
 

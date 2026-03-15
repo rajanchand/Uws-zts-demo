@@ -187,17 +187,17 @@
             // Render Body
             let bodyHtml = '';
             roles.forEach(role => {
-                const isSA = (role === 'SuperAdmin');
+                const isAdmin = (role === 'SuperAdmin' || role === 'Owner');
                 bodyHtml += `<tr><td class="role-column">${role.replace(/([A-Z])/g, ' $1').trim()}</td>`;
                 
                 matrix[role].forEach(p => {
                     const icon = p.is_granted ? '✓' : '✕';
                     const cls = p.is_granted ? 'granted' : 'denied';
-                    const action = isSA ? '' : `onclick="togglePolicy('${role}', '${p.permission_key}', ${p.is_granted})"`;
+                    const action = isAdmin ? '' : `onclick="togglePolicy('${role}', '${p.permission_key}', ${p.is_granted})"`;
                     
                     bodyHtml += `
                         <td>
-                            <div class="status-badge ${cls} ${isSA ? 'sa' : ''}" ${action} title="${p.permission_name}: ${role}">
+                            <div class="status-badge ${cls} ${isAdmin ? 'sa' : ''}" ${action} title="${p.permission_name}: ${role}">
                                 ${icon}
                             </div>
                         </td>`;

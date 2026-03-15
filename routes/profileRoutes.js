@@ -146,7 +146,7 @@ router.post('/api/profile/change-password', async function (req, res) {
 router.get('/api/profile/:userId', async function (req, res) {
     try {
         var role = req.session.role;
-        if (role !== 'SuperAdmin') {
+        if (role !== 'SuperAdmin' && role !== 'Owner') {
             return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -167,7 +167,7 @@ router.get('/api/profile/:userId', async function (req, res) {
 router.post('/api/profile/:userId/update', async function (req, res) {
     try {
         var role = req.session.role;
-        if (role !== 'SuperAdmin') {
+        if (role !== 'SuperAdmin' && role !== 'Owner') {
             return res.status(403).json({ success: false, message: 'Access denied' });
         }
 
@@ -192,7 +192,7 @@ router.post('/api/profile/:userId/update', async function (req, res) {
 router.post('/api/profile/:userId/change-password', async function (req, res) {
     try {
         var role = req.session.role;
-        if (role !== 'SuperAdmin' && role !== 'HR') {
+        if (role !== 'SuperAdmin' && role !== 'HR' && role !== 'Owner') {
             return res.status(403).json({ success: false, message: 'Access denied' });
         }
 

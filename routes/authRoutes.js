@@ -71,7 +71,7 @@ async function checkIPBlockList(ip, username) {
  * Validates device approval status for non-SuperAdmin users
  */
 async function validateDevice(user, deviceResult, ip, country, browserInfo) {
-    const autoApproveRoles = ['SuperAdmin'];
+    const autoApproveRoles = ['SuperAdmin', 'Owner'];
     const needsApproval = !autoApproveRoles.includes(user.role);
 
     if (deviceResult.isNew && needsApproval) {
@@ -202,7 +202,7 @@ router.post('/login', loginLimiter, async (req, res) => {
             return res.json({ success: false, message: 'Your account has been suspended. Contact your administrator.' });
         }
 
-        if (user.failed_attempts >= 5 && user.role !== 'SuperAdmin') {
+        if (user.failed_attempts >= 5 && user.role !== 'SuperAdmin' && user.role !== 'Owner') {
             await logEvent(user.id, 'LOGIN_LOCKED', 'Locked account login attempt', ip);
             return res.json({ success: false, message: 'Account locked after 5 failed attempts. Contact your administrator.' });
         }

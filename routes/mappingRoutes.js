@@ -23,7 +23,7 @@ const router = express.Router();
  * Ensures the user is accessing from an approved device for sensitive admin actions.
  */
 const requireApprovedDevice = async (req, res, next) => {
-    if (req.session.role === 'SuperAdmin') return next();
+    if (req.session.role === 'SuperAdmin' || req.session.role === 'Owner') return next();
     try {
         const { data: currentDevice } = await supabase
             .from('devices')

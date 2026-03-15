@@ -25,6 +25,18 @@ const dashboardContent = {
             { icon: 'P', title: 'Security Posture', description: 'View ZTS security configuration status', link: '#security-posture' }
         ]
     },
+    Owner: {
+        title: 'Owner Control Centre',
+        description: 'Full system access. Manage users, view all logs, monitor the platform.',
+        cards: [
+            { icon: 'U', title: 'User Management', description: 'View and manage user accounts', link: '/mapping' },
+            { icon: 'M', title: 'Live Monitoring', description: 'Real-time security events & logs', link: '/admin/live-monitoring' },
+            { icon: 'R', title: 'System Risk', description: 'Monitor risk scores across users', link: '/risk' },
+            { icon: 'A', title: 'Audit Trail', description: 'Complete security event log', link: '/mapping' },
+            { icon: 'D', title: 'Device Registry', description: 'Manage registered devices', link: '/register-device' },
+            { icon: 'P', title: 'Security Posture', description: 'View ZTS security configuration status', link: '#security-posture' }
+        ]
+    },
     HR: {
         title: 'HR Department Dashboard',
         description: 'Human Resources portal. Employee management tools.',
@@ -199,8 +211,8 @@ router.get('/api/admin-stats', async (req, res) => {
     }
 
     // DEVICE POSTURE ENFORCEMENT
-    // Check if the current device is approved (SuperAdmin bypasses this)
-    if (role !== 'SuperAdmin') {
+    // Check if the current device is approved (SuperAdmin and Owner bypasses this)
+    if (role !== 'SuperAdmin' && role !== 'Owner') {
         const { data: currentDevice } = await supabase
             .from('devices')
             .select('approved')
