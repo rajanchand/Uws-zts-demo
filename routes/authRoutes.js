@@ -450,7 +450,7 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
             return res.json({ success: false, message: 'Session invalidated during verification due to concurrent login. Please login again.' });
         }
 
-        if (riskLevel === 'High') {
+        if (riskLevel === 'High' && role !== 'SuperAdmin' && role !== 'Owner') {
             await supabase.from('users').update({ status: 'active_pending_approval' }).eq('id', userId);
             req.session.otpVerified = true;
             req.session.isApproved = false;
