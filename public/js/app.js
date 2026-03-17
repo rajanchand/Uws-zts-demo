@@ -136,29 +136,22 @@ function buildNavbar(role, activePage, username, permissions = []) {
         `;
     }
 
-    // Live Monitor — top-level direct link (no dropdown), shown if user has view_monitoring
-    if (permissions.includes('view_monitoring')) {
-        const isActive = activePage === 'live-monitoring';
-        html += `
-            <div class="nav-item ${isActive ? 'active' : ''}">
-                <a href="/admin/live-monitoring" class="nav-link ${isActive ? 'active' : ''}">
-                    <span style="display:inline-flex;align-items:center;gap:5px;">
-                        <span style="width:7px;height:7px;border-radius:50%;background:#27ae60;display:inline-block;animation:blink 1.4s infinite;"></span>
-                        Live Monitor
-                    </span>
-                </a>
-            </div>
-        `;
-    }
-
-    // Security / Risk Analysis dropdown
-    if (permissions.includes('analyze_risk')) {
-        const isActive = activePage === 'risk';
+    // Security / Risk Analysis & Live Monitoring dropdown
+    const canSeeSecurity = permissions.includes('analyze_risk') || permissions.includes('view_monitoring');
+    if (canSeeSecurity) {
+        const isActive = (activePage === 'risk' || activePage === 'live-monitoring');
         html += `
             <div class="nav-item ${isActive ? 'active' : ''}">
                 <button class="nav-link ${isActive ? 'active' : ''}" onclick="toggleDropdown(this)">Security <span class="arrow">▾</span></button>
                 <div class="dropdown-menu">
-                    <a href="/risk" ${isActive ? 'class="active"' : ''}>System Risk</a>
+                    ${permissions.includes('view_monitoring') ? `
+                        <a href="/admin/live-monitoring" ${activePage === 'live-monitoring' ? 'class="active"' : ''}>
+                            <span style="display:inline-flex;align-items:center;gap:5px;">
+                                <span style="width:7px;height:7px;border-radius:50%;background:#27ae60;display:inline-block;animation:blink 1.4s infinite;"></span>
+                                Live Logs
+                            </span>
+                        </a>` : ''}
+                    ${permissions.includes('analyze_risk') ? `<a href="/risk" ${activePage === 'risk' ? 'class="active"' : ''}>System Risk</a>` : ''}
                 </div>
             </div>
         `;
