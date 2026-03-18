@@ -209,8 +209,23 @@ router.post('/api/mapping/users/delete', requirePermission('delete_users'), requ
             return res.json({ success: false, message: 'You cannot delete your own account.' });
         }
 
-        const { data: user } = await supabase.from('users').select('username').eq('id', userId).single();
+        const { data: user } = await supabase.from('users').select('username, role').eq('id', userId).single();
         if (!user) return res.json({ success: false, message: 'User not found.' });
+
+        // PROTECT ADMINISTRATIVE ROLES
+        if (user.role === 'SuperAdmin' || user.role === 'Owner') {
+            await logSecurityEvent({
+                event_type: 'ACCESS_DENIED',
+                user_id: req.session.userId,
+                username: req.session.username,
+                ip: req.ip,
+                details: { action: 'attempted_admin_deletion', target_user: user.username, target_role: user.role }
+            });
+            return res.status(403).json({ 
+                success: false, 
+                message: `Safety Lock: You cannot delete the ${user.role} role. This is a protected system account.` 
+            });
+        }
 
         // Cleanup dependencies
         await supabase.from('devices').update({ approved_by: null }).eq('approved_by', userId);
