@@ -558,12 +558,24 @@
         async function deleteUser(id, name) {
             if (!confirm(`Permanently delete user "${name}"? This action is logged.`)) return;
             const result = await postJSON('/api/mapping/users/delete', { userId: id });
+            
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => deleteUser(id, name));
+                return;
+            }
+
             showToast(result.message, result.success ? 'success' : 'error');
             if (result.success) loadUsers();
         }
 
         async function suspendUser(id) {
             const result = await postJSON('/api/mapping/users/suspend', { userId: id });
+            
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => suspendUser(id));
+                return;
+            }
+
             showToast(result.message, result.success ? 'success' : 'error');
             if (result.success) loadUsers();
         }
@@ -571,6 +583,12 @@
         async function blockUser(id) {
             if (!confirm('Instantly block this user?')) return;
             const result = await postJSON('/api/mapping/users/block', { userId: id });
+            
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => blockUser(id));
+                return;
+            }
+
             showToast(result.message, result.success ? 'success' : 'error');
             if (result.success) loadUsers();
         }
