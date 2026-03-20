@@ -58,6 +58,24 @@
             cursor: not-allowed;
             opacity: 0.6;
         }
+
+        /* Device Card Styling */
+        .device-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        .device-card:hover { border-color: #cbd5e1; }
+
+        .device-info h4 { margin: 0; font-size: 0.9rem; color: #1e293b; }
+        .device-info p { margin: 2px 0 0; font-size: 0.75rem; color: #64748b; }
     </style>
 </head>
 
@@ -70,6 +88,17 @@
     </nav>
 
     <div class="container">
+        <!-- Pending Device Approvals -->
+        <div class="card" id="pendingDevicesCard" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="margin:0;">Pending Device Approvals</h3>
+                <span id="pendingCount" class="role-badge" style="background:#fef3c7; color:#92400e; border-color:#fde68a;">0</span>
+            </div>
+            <p style="font-size:0.75rem; color:#64748b; margin-bottom:12px;">New devices must be approved before users can access company resources.</p>
+            <div id="pendingDeviceList">
+                <div style="text-align:center; padding:20px; color:#aaa;">Scanning for pending authorization requests...</div>
+            </div>
+        </div>
 
         <!-- User Management -->
         <div class="card">
@@ -341,6 +370,7 @@
 
                 loadUsers();
                 loadDepartments();
+                loadPendingDevices();
             } catch (err) {
                 console.error('ZTS Init Error:', err);
                 showToast('Connection error. Please refresh.', 'error');
@@ -400,6 +430,47 @@
                 });
             } catch (e) {
                 console.error('Failed to load users:', e);
+            }
+        }
+
+        async function loadPendingDevices() {
+            try {
+                if (!window.userPermissions.includes('approve_devices')) return;
+                
+                const devices = await (await fetch('/api/mapping/devices/pending')).json();
+                const card = document.getElementById('pendingDevicesCard');
+                const list = document.getElementById('pendingDeviceList');
+                const count = document.getElementById('pendingCount');
+
+                count.textContent = devices.length;
+                if (devices.length > 0) {
+                    card.style.display = 'block';
+                    list.innerHTML = '';
+                    devices.forEach(d => {
+                        const div = document.createElement('div');
+                        div.className = 'device-card';
+                        div.innerHTML = `
+                            <div class="device-info">
+                                <h4>${d.username || 'Unknown User'} — ${d.label || 'Unknown Device'}</h4>
+                                <p>${d.os || 'Unknown OS'} | ${d.country || 'Unknown Location'} | IP: ${d.ip || '-'}</p>
+                                <p style="font-size:0.65rem;">Fingerprint: <code>${d.fingerprint.substring(0,16)}...</code></p>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <select id="trust-${d.id}" style="font-size:0.75rem; padding:4px; border-radius:4px; border:1px solid #e2e8f0;">
+                                    <option value="Managed">Managed (Company)</option>
+                                    <option value="BYOD">BYOD (Personal)</option>
+                                </select>
+                                <button class="btn btn-sm btn-primary" onclick="approveDevice('${d.id}')">Approve</button>
+                                <button class="btn btn-sm btn-outline" onclick="rejectDevice('${d.id}')">Reject</button>
+                            </div>
+                        `;
+                        list.appendChild(div);
+                    });
+                } else {
+                    card.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Failed to load pending devices:', err);
             }
         }
 
@@ -491,13 +562,6 @@
             if (result.success) loadUsers();
         }
 
-        async function approveUserRisk(userId) {
-            if (!confirm('Manually approve this high-risk session?')) return;
-            const res = await postJSON('/api/mapping/users/approve-risk', { userId });
-            showToast(res.message, res.success ? 'success' : 'error');
-            if (res.success) loadUsers();
-        }
-
         async function suspendUser(id) {
             const result = await postJSON('/api/mapping/users/suspend', { userId: id });
             showToast(result.message, result.success ? 'success' : 'error');
@@ -515,6 +579,74 @@
             const result = await postJSON('/api/mapping/users/activate', { userId: id });
             showToast(result.message, result.success ? 'success' : 'error');
             if (result.success) loadUsers();
+        }
+
+        async function approveUserRisk(userId) {
+            const result = await postJSON('/api/mapping/users/approve-risk', { userId });
+            
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => approveUserRisk(userId));
+                return;
+            }
+
+            showToast(result.message, result.success ? 'success' : 'error');
+            if (result.success) loadUsers();
+        }
+
+        async function approveDevice(id) {
+            const trustLevel = document.getElementById('trust-' + id).value;
+            const result = await postJSON('/api/mapping/devices/approve', { 
+                deviceId: id,
+                trustLevel: trustLevel 
+            });
+            
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => approveDevice(id));
+                return;
+            }
+
+            showToast(result.message || 'Device approved', result.success ? 'success' : 'error');
+            loadPendingDevices();
+        }
+
+        async function rejectDevice(id) {
+            if (!confirm('Reject and delete this identification request?')) return;
+            const result = await postJSON('/api/mapping/devices/reject', { deviceId: id });
+            
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => rejectDevice(id));
+                return;
+            }
+
+            showToast(result.message || 'Request rejected', result.success ? 'success' : 'error');
+            loadPendingDevices();
+        }
+
+        /**
+         * RE-AUTHENTICATION BOILERPLATE
+         */
+        let pendingReAuthCallback = null;
+        function handleReAuthRequired(callback) {
+            pendingReAuthCallback = callback;
+            document.getElementById('reAuthPassword').value = '';
+            document.getElementById('reAuthError').style.display = 'none';
+            document.getElementById('reAuthModal').style.display = 'flex';
+        }
+
+        async function submitReAuth() {
+            const pwd = document.getElementById('reAuthPassword').value;
+            const errEl = document.getElementById('reAuthError');
+            errEl.style.display = 'none';
+
+            const result = await postJSON('/api/verify-reauth', { password: pwd });
+            if (result.success) {
+                hideModal('reAuthModal');
+                showToast('Identity verified.', 'success');
+                if (pendingReAuthCallback) pendingReAuthCallback();
+            } else {
+                errEl.textContent = result.message;
+                errEl.style.display = 'block';
+            }
         }
 
         async function changeRole() {
@@ -729,6 +861,23 @@
 
         init();
     </script>
+
+    <!-- Re-Authentication Modal -->
+    <div id="reAuthModal" class="modal-overlay" style="display:none; z-index: 9999;">
+        <div class="modal">
+            <h3>Security Verification</h3>
+            <p style="margin-bottom:12px; font-size:0.85rem;">This higher-privileged action requires an extra security confirmation. Please enter your password to proceed.</p>
+            <div class="form-group">
+                <label>Admin Password</label>
+                <input type="password" id="reAuthPassword" placeholder="Confirm your password">
+            </div>
+            <p id="reAuthError" class="error-msg" style="display:none;"></p>
+            <div style="display:flex; gap:8px; margin-top:16px;">
+                <button class="btn btn-primary" onclick="submitReAuth()">Confirm Identity</button>
+                <button class="btn btn-outline" onclick="hideModal('reAuthModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
