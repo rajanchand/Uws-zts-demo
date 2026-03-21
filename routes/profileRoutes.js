@@ -8,6 +8,7 @@ var path = require('path');
 var { supabase } = require('../db');
 var { logEvent } = require('../services/auditService');
 var { validatePassword } = require('../middleware/passwordPolicy');
+var { requireReAuth } = require('../middleware/stepUpAuth');
 
 var router = express.Router();
 
@@ -189,7 +190,7 @@ router.post('/api/profile/:userId/update', async function (req, res) {
 });
 
 // admin: change any user password — with policy enforcement
-router.post('/api/profile/:userId/change-password', async function (req, res) {
+router.post('/api/profile/:userId/change-password', requireReAuth, async function (req, res) {
     try {
         var role = req.session.role;
         if (role !== 'SuperAdmin' && role !== 'HR' && role !== 'Owner') {

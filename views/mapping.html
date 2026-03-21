@@ -595,6 +595,12 @@
 
         async function activateUser(id) {
             const result = await postJSON('/api/mapping/users/activate', { userId: id });
+            
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => activateUser(id));
+                return;
+            }
+
             showToast(result.message, result.success ? 'success' : 'error');
             if (result.success) loadUsers();
         }
@@ -671,6 +677,12 @@
             const userId = document.getElementById('changeRoleUserId').value;
             const newRole = document.getElementById('changeRoleSelect').value;
             const result = await postJSON('/api/mapping/users/change-role', { userId: parseInt(userId), newRole });
+            
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => changeRole());
+                return;
+            }
+
             showToast(result.message, result.success ? 'success' : 'error');
             hideModal('changeRoleModal');
             if (result.success) loadUsers();
@@ -766,6 +778,12 @@
 
             const userId = document.getElementById('resetPasswordUserId').value;
             const result = await postJSON(`/api/profile/${userId}/change-password`, { newPassword: newPwd });
+            
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => resetPassword());
+                return;
+            }
+
             if (result.success) {
                 hideModal('resetPasswordModal');
                 showToast('Password reset successfully.', 'success');
@@ -796,6 +814,12 @@
                 role: document.getElementById('editRole').value,
                 department: document.getElementById('editDepartment').value
             });
+
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => editUser());
+                return;
+            }
+
             if (result.success) {
                 hideModal('editUserModal');
                 showToast('User updated.', 'success');
@@ -865,6 +889,16 @@
                     permission_key: key,
                     is_granted: el.checked
                 });
+
+                if (data.requireReAuth) {
+                    el.checked = !el.checked; // Revert visually
+                    handleReAuthRequired(() => {
+                        el.checked = !el.checked; // Re-toggle visually
+                        togglePermission(role, key, el);
+                    });
+                    return;
+                }
+
                 if (data.success) {
                     showToast('Policy updated', 'success');
                 } else {

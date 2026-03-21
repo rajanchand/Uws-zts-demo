@@ -3,6 +3,7 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const { requireRole } = require('../middleware/rbac');
+const { requireReAuth } = require('../middleware/stepUpAuth');
 
 const permsFile = path.join(__dirname, '..', 'role_permissions.json');
 
@@ -37,7 +38,7 @@ router.get('/api/rbac/matrix', async (req, res) => {
   }
 });
 
-router.post('/api/rbac/toggle', requireRole(['SuperAdmin', 'Owner']), async (req, res) => {
+router.post('/api/rbac/toggle', requireRole(['SuperAdmin', 'Owner']), requireReAuth, async (req, res) => {
   const { role, permission_key, is_granted } = req.body;
   if (!role || !permission_key) return res.sendStatus(400);
 
