@@ -108,14 +108,20 @@ echo "  → App started ✓"
 echo ""
 echo "Logging deployment to database..."
 node -e "
-const db = require('./db');
+const { supabase } = require('./db');
 (async () => {
   try {
-    await db.query(
-      \`INSERT INTO deployments (deployed_by, git_commit, git_branch, status, vps_ip, notes)
-       VALUES (\$1, \$2, \$3, \$4, \$5, \$6)\`,
-      ['root', '$GIT_COMMIT', '$GIT_BRANCH', 'success', '$VPS_IP', 'Deployed via deploy.sh']
-    );
+    const { error } = await supabase
+      .from('deployments')
+      .insert({
+        deployed_by: 'root',
+        git_commit: '$GIT_COMMIT',
+        git_branch: '$GIT_BRANCH',
+        status: 'success',
+        vps_ip: '$VPS_IP',
+        notes: 'Deployed via deploy.sh'
+      });
+    if (error) throw error;
     console.log('  → Deployment logged to database ✓');
     process.exit(0);
   } catch(e) {
