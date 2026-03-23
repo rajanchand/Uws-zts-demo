@@ -7,7 +7,7 @@ const { generateOTP, verifyOTP } = require('../services/otpService');
 const { sendLoginAlertEmail, sendAnomalyAlertEmail } = require('../services/emailService');
 const { calculateRisk } = require('../services/riskEngine');
 const { registerDevice, findDevice, approveDevice } = require('../services/deviceService');
-const { getGeoFromIP, isVPNConnection, checkImpossibleTravel } = require('../services/geoService');
+const { getGeoFromIP, isVPNConnection, checkImpossibleTravel, isHostingISP } = require('../services/geoService');
 const { logEvent } = require('../services/auditService');
 const { logSecurityEvent } = require('../services/monitorService');
 const { generateCSRFToken } = require('../middleware/csrf');
@@ -221,7 +221,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         const osInfo = parser.getOS();
         const geo = await getGeoFromIP(ip);
         const country = geo.country || 'Unknown';
-        const vpn = isVPNConnection(ip) || geo.isProxy;
+        const vpn = isVPNConnection(ip) || geo.isProxy || isHostingISP(geo.isp || '');
 
         console.log(`\n[DEBUG] VPN CHECK - IP: ${ip}`);
         console.log(`[DEBUG] Geo Country: ${country}, isProxy: ${geo.isProxy}`);
