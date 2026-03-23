@@ -72,10 +72,10 @@ async function sendLoginAlertEmail(username, ip, country) {
         '  <p style="font-size:15px;">A user has just logged into the system.</p>',
         '  <ul style="font-size:14px;color:#2d3436;background:#f4f5f7;border-radius:8px;padding:20px;list-style-type:none;">',
         '    <li style="margin-bottom:8px;"><strong>Username:</strong> ' + username + '</li>',
-        '    <li style="margin-bottom:8px;"><strong>IP Address:</strong> ' + ip + '</li>',
+        '    <li style="margin-bottom:8px;"><strong>Source IP Address:</strong> ' + ip + '</li>',
         '    <li><strong>Location:</strong> ' + country + '</li>',
         '  </ul>',
-        '  <p style="font-size:13px;color:#636e72;">If this activity is suspicious, please review the session logs in the admin dashboard.</p>',
+        '  <p style="font-size:13px;color:#636e72;">If this activity appears unusual or unauthorized, administrators are advised to review session logs via the admin dashboard and take necessary actions, including session termination and credential verification.</p>',
         '  <hr style="border:none;border-top:1px solid #eee;margin:16px 0;">',
         '  <p style="font-size:11px;color:#b2bec3;">ZTS — Zero Trust Security Demo</p>',
         '</div>'
