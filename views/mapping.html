@@ -358,13 +358,12 @@
                     buildNavbar(data.user.role, 'mapping', data.user.username, data.user.permissions);
                     
                     // UI filtering for management buttons
-                    if (!window.userPermissions.includes('manage_users')) {
-                        const btn = document.getElementById('createUserBtn');
-                        if (btn) btn.style.display = 'none';
-                    }
-                    if (!window.userPermissions.includes('manage_depts')) {
-                        const btn = document.getElementById('createDeptBtn');
-                        if (btn) btn.style.display = 'none';
+                    // STRICT: Only SuperAdmin can create users and departments
+                    if (data.user.role !== 'SuperAdmin') {
+                        const userBtn = document.getElementById('createUserBtn');
+                        if (userBtn) userBtn.style.display = 'none';
+                        const deptBtn = document.getElementById('createDeptBtn');
+                        if (deptBtn) deptBtn.style.display = 'none';
                     }
                 }
 

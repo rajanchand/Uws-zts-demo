@@ -76,6 +76,9 @@ router.get('/api/mapping/users', async (req, res) => {
 
 // Create new user
 router.post('/api/mapping/users/create', requirePermission('manage_users'), requireReAuth, requireApprovedDevice, async (req, res) => {
+    if (req.session.role !== 'SuperAdmin') {
+        return res.status(403).json({ success: false, message: 'Access denied: Only SuperAdmin can create users.' });
+    }
     try {
         const { username, password, role, email, department } = req.body;
 
@@ -427,6 +430,9 @@ router.get('/api/mapping/departments', async (req, res) => {
 });
 
 router.post('/api/mapping/departments/create', requirePermission('manage_depts'), requireApprovedDevice, async (req, res) => {
+    if (req.session.role !== 'SuperAdmin') {
+        return res.status(403).json({ success: false, message: 'Access denied: Only SuperAdmin can create departments.' });
+    }
     try {
         // Permission already checked by requirePermission('manage_depts') middleware
 

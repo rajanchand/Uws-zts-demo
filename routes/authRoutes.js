@@ -71,7 +71,7 @@ async function checkIPBlockList(ip, username) {
  * Validates device approval status for non-SuperAdmin users
  */
 async function validateDevice(user, deviceResult, ip, country, browserInfo) {
-    const autoApproveRoles = ['SuperAdmin', 'Owner'];
+    const autoApproveRoles = ['SuperAdmin'];
     const needsApproval = !autoApproveRoles.includes(user.role);
 
     if (deviceResult.isNew && needsApproval) {
