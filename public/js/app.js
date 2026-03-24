@@ -104,7 +104,17 @@ async function postJSON(url, data) {
         headers: headers,
         body: JSON.stringify(data)
     });
-    return response.json();
+    
+    // Robustness: Handle non-JSON or error responses gracefully
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return response.json();
+    } else {
+        // Fallback for HTML error pages or server crashes
+        const text = await response.text();
+        console.error('Server returned non-JSON response:', text);
+        return { success: false, message: `Server error (${response.status}). Please check admin logs.` };
+    }
 }
 
 /**

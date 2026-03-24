@@ -57,6 +57,9 @@ function requireRole(roles) {
     if (role === 'SuperAdmin' || role === 'Owner') return next();
 
     if (!roles.includes(role)) {
+      if (req.originalUrl.startsWith('/api/') || (req.headers.accept && req.headers.accept.includes('application/json'))) {
+        return res.status(403).json({ success: false, message: `Access denied. Protected role required.` });
+      }
       return res.status(403).send(`
         <div style="text-align:center; padding:50px; font-family:sans-serif;">
           <h1>Access Denied</h1>
@@ -79,6 +82,9 @@ function requirePermission(key) {
     const rolePerms = perms[role] || {};
 
     if (!rolePerms[key]) {
+      if (req.originalUrl.startsWith('/api/') || (req.headers.accept && req.headers.accept.includes('application/json'))) {
+        return res.status(403).json({ success: false, message: `Access denied: Missing the required "${key}" permission.` });
+      }
       return res.status(403).send(`
         <div style="text-align:center; padding:50px; font-family:sans-serif;">
           <h1>Access Denied</h1>
