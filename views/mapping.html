@@ -536,13 +536,20 @@
             const errEl = document.getElementById('createUserError');
             errEl.style.display = 'none';
 
-            const result = await postJSON('/api/mapping/users/create', {
+            const payload = {
                 username: document.getElementById('newUsername').value,
                 password: document.getElementById('newPassword').value,
                 email: document.getElementById('newEmail').value,
                 role: document.getElementById('newRole').value,
                 department: document.getElementById('newDepartment').value
-            });
+            };
+
+            const result = await postJSON('/api/mapping/users/create', payload);
+
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => createUser());
+                return;
+            }
 
             if (result.success) {
                 hideModal('createUserModal');
@@ -696,6 +703,12 @@
             if (headVal) payload.head_user_id = parseInt(headVal);
 
             const result = await postJSON('/api/mapping/departments/create', payload);
+            
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => createDept());
+                return;
+            }
+
             if (result.success) {
                 hideModal('createDeptModal');
                 loadDepartments();
@@ -709,6 +722,12 @@
         async function deleteDept(id, name) {
             if (!confirm(`Delete department "${name}"?`)) return;
             const result = await postJSON('/api/mapping/departments/delete', { departmentId: id });
+            
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => deleteDept(id, name));
+                return;
+            }
+
             showToast(result.message, result.success ? 'success' : 'error');
             if (result.success) loadDepartments();
         }
@@ -737,6 +756,12 @@
                 departmentId: parseInt(document.getElementById('setHeadDeptId').value),
                 head_user_id: document.getElementById('setHeadSelect').value || null
             });
+            
+            if (result.requireReAuth) {
+                handleReAuthRequired(() => setDeptHead());
+                return;
+            }
+
             showToast(result.message, result.success ? 'success' : 'error');
             hideModal('setHeadModal');
             if (result.success) loadDepartments();

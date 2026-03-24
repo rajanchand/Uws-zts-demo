@@ -429,7 +429,7 @@ router.get('/api/mapping/departments', async (req, res) => {
     }
 });
 
-router.post('/api/mapping/departments/create', requirePermission('manage_depts'), requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/departments/create', requirePermission('manage_depts'), requireReAuth, requireApprovedDevice, async (req, res) => {
     if (req.session.role !== 'SuperAdmin') {
         return res.status(403).json({ success: false, message: 'Access denied: Only SuperAdmin can create departments.' });
     }
@@ -454,7 +454,7 @@ router.post('/api/mapping/departments/create', requirePermission('manage_depts')
     }
 });
 
-router.post('/api/mapping/departments/delete', requirePermission('manage_depts'), requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/departments/delete', requirePermission('manage_depts'), requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         // Permission checked by requirePermission('manage_depts') middleware
 
@@ -473,7 +473,7 @@ router.post('/api/mapping/departments/delete', requirePermission('manage_depts')
 });
 
 // Update Department Head
-router.post('/api/mapping/departments/update-head', requirePermission('manage_depts'), requireApprovedDevice, async (req, res) => {
+router.post('/api/mapping/departments/update-head', requirePermission('manage_depts'), requireReAuth, requireApprovedDevice, async (req, res) => {
     try {
         const deptId = req.body.departmentId;
         const headUserId = req.body.head_user_id ? parseInt(req.body.head_user_id) : null;
