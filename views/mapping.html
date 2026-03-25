@@ -17,6 +17,7 @@
     </nav>
 
     <div class="container">
+
         <!-- User Management -->
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -233,6 +234,20 @@
         </div>
     </div>
 
+    <!-- View Permissions Modal -->
+    <div id="viewPermissionsModal" class="modal-overlay" style="display:none;">
+        <div class="modal" style="max-width: 450px;">
+            <h3>User Permissions</h3>
+            <p id="permModalUser" style="margin-bottom:12px; font-weight:600;"></p>
+            <div id="permModalList" class="perm-list" style="max-height: 400px; overflow-y: auto; margin: 15px 0;">
+                <!-- filled by JS -->
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+                <button class="btn btn-outline" onclick="hideModal('viewPermissionsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Re-Authentication Modal -->
     <div id="reAuthModal" class="modal-overlay" style="display:none; z-index: 9999;">
         <div class="modal">
@@ -283,7 +298,15 @@
         async function init() {
             var s = await (await fetch('/api/session')).json();
             if (!s.loggedIn) return location.href = '/login';
+            window.userRole = s.user.role; // store globally for UI filtering
             buildNavbar(s.user.role, 'mapping', s.user.username);
+            
+            // UI Role Filtering
+            if (s.user.role === 'HR') {
+                const createDeptBtn = document.querySelector('button[onclick="showCreateDept()"]');
+                if (createDeptBtn) createDeptBtn.style.display = 'none';
+            }
+
             loadUsers();
             loadDepartments();
         }
@@ -307,7 +330,11 @@
                 }
                 actions += '<button class="btn btn-sm btn-outline" onclick="showChangeRole(' + u.id + ',\'' + u.username + '\',\'' + u.role + '\')">Role</button> ';
                 actions += '<button class="btn btn-sm btn-outline" onclick="showResetPassword(' + u.id + ',\'' + u.username + '\')">Password</button> ';
-                actions += '<button class="btn btn-sm btn-danger" onclick="deleteUser(' + u.id + ',\'' + u.username + '\')">Delete</button>';
+                actions += '<button class="btn btn-sm btn-outline" onclick="showUserPermissions(\'' + u.username + '\',\'' + u.role + '\')" title="View Permissions">👁</button> ';
+                
+                if (window.userRole === 'SuperAdmin') {
+                    actions += '<button class="btn btn-sm btn-danger" onclick="deleteUser(' + u.id + ',\'' + u.username + '\')">Delete</button>';
+                }
 
                 tr.innerHTML =
                     '<td>' + u.id + '</td>' +
@@ -344,9 +371,12 @@
                     '<td><span class="role-badge" style="font-size:0.7rem;">' + (d.total_users || 0) + '</span></td>' +
                     '<td>' + formatDate(d.created_at) + '</td>' +
                     '<td>' +
-                    '<button class="btn btn-sm btn-primary" onclick="showSetHead(' + d.id + ',\'' + d.name + '\')" style="margin-right:4px;">Set Head</button>' +
-                    '<button class="btn btn-sm btn-danger" onclick="deleteDept(' + d.id + ',\'' + d.name + '\')">Delete</button>' +
-                    '</td>';
+                    '<button class="btn btn-sm btn-primary" onclick="showSetHead(' + d.id + ',\'' + d.name + '\')" style="margin-right:4px;">Set Head</button>';
+                
+                if (window.userRole === 'SuperAdmin') {
+                    tr.innerHTML += '<button class="btn btn-sm btn-danger" onclick="deleteDept(' + d.id + ',\'' + d.name + '\')">Delete</button>';
+                }
+                tr.innerHTML += '</td>';
                 tb.appendChild(tr);
             });
 
@@ -614,6 +644,39 @@
                 errEl.textContent = result.message;
                 errEl.style.display = 'block';
             }
+        }
+
+        async function showUserPermissions(username, role) {
+            document.getElementById('permModalUser').textContent = 'Role: ' + role + ' (' + username + ')';
+            var list = document.getElementById('permModalList');
+            
+            var perms = [
+                { name: 'Onboard New Users', hr: true, it: false, admin: true },
+                { name: 'Reset User Passwords', hr: true, it: false, admin: true },
+                { name: 'Approve Devices', hr: true, it: false, admin: true },
+                { name: 'Change User Roles', hr: true, it: false, admin: true },
+                { name: 'Delete Users/Depts', hr: false, it: false, admin: true },
+                { name: 'Live Monitoring', hr: false, it: true, admin: true },
+                { name: 'Risk Score Analysis', hr: false, it: true, admin: true },
+                { name: 'IP Rules / Blocklist', hr: false, it: false, admin: true },
+                { name: 'System Performance', hr: false, it: true, admin: true }
+            ];
+
+            var html = '';
+            perms.forEach(function(p) {
+                var has = false;
+                if (role === 'SuperAdmin') has = p.admin;
+                else if (role === 'HR') has = p.hr;
+                else if (role === 'IT') has = p.it;
+                
+                var icon = has ? '<span style="color:#27ae60; font-weight:bold; margin-right:10px;">✓</span>' : '<span style="color:#e74c3c; opacity:0.3; margin-right:10px;">✗</span>';
+                var style = has ? '' : 'color:#aaa; text-decoration:line-through; font-size:0.85rem;';
+                
+                html += '<div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px solid #f5f5f5;' + style + '">' + icon + p.name + '</div>';
+            });
+            
+            list.innerHTML = html;
+            document.getElementById('viewPermissionsModal').style.display = 'flex';
         }
 
         init();

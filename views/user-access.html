@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Control - ZTS</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .access-matrix {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+        .access-matrix th, .access-matrix td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        .access-matrix th {
+            background: #eee;
+            font-size: 0.9rem;
+        }
+        .role-name {
+            text-align: left !important;
+            font-weight: bold;
+            background: #f9f9f9;
+        }
+        .toggle {
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .check { color: green; }
+        .cross { color: red; opacity: 0.3; }
+        .cross:hover { opacity: 1; }
+        .admin-only { opacity: 0.5; cursor: default; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <button class="menu-toggle">☰</button>
+        <a href="/dashboard" class="navbar-brand">ZTS Security</a>
+        <div class="nav-menu" id="mainNav"></div>
+        <div class="user-menu" id="userMenu"></div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <h2>Role Permissions Matrix</h2>
+            <p>Manage what each role can do. Click the icons to toggle access.</p>
+
+            <table class="access-matrix">
+                <thead id="head"></thead>
+                <tbody id="body">
+                    <tr><td colspan="10">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        async function load() {
+            const s = await (await fetch('/api/session')).json();
+            if (!s.loggedIn) return location.href = '/login';
+            
+            buildNavbar(s.user.role, 'user-access', s.user.username);
+            
+            const res = await fetch('/api/rbac/matrix');
+            const { matrix } = await res.json();
+            
+            const roles = Object.keys(matrix).sort();
+            const perms = matrix[roles[0]];
+
+            // Header
+            let h = '<tr><th class="role-name">Role</th>';
+            perms.forEach(p => h += `<th>${p.permission_name}</th>`);
+            document.getElementById('head').innerHTML = h + '</tr>';
+
+            // Body
+            let b = '';
+            roles.forEach(role => {
+                const isSA = role === 'SuperAdmin';
+                b += `<tr><td class="role-name">${role}</td>`;
+                matrix[role].forEach(p => {
+                    const icon = p.is_granted ? '✓' : '✗';
+                    const cls = p.is_granted ? 'check' : 'cross';
+                    const action = isSA ? '' : `onclick="toggle('${role}', '${p.permission_key}', ${p.is_granted})"`;
+                    
+                    b += `<td><span class="${cls} ${isSA ? 'admin-only' : 'toggle'}" ${action}>${icon}</span></td>`;
+                });
+                b += '</tr>';
+            });
+            document.getElementById('body').innerHTML = b;
+        }
+
+        async function toggle(role, key, status) {
+            const res = await postJSON('/api/rbac/toggle', { role, permission_key: key, is_granted: !status });
+            if (res.success) {
+                showToast('Updated');
+                load();
+            }
+        }
+
+        load();
+    </script>
+</body>
+</html>
+</html>

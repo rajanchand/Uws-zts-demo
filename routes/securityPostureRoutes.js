@@ -3,11 +3,9 @@
 
 const express = require('express');
 const router = express.Router();
+const { requirePermission } = require('../middleware/rbac');
 
-router.get('/api/security-posture', function (req, res) {
-    if (req.session.role !== 'SuperAdmin') {
-        return res.status(403).json({ error: 'Access denied' });
-    }
+router.get('/api/security-posture', requirePermission('view_posture'), function (req, res) {
 
     var posture = {
         overall: 'Strong',

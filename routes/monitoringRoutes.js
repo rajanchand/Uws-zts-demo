@@ -5,15 +5,17 @@ var express = require('express');
 var path = require('path');
 var { addClient, getRecentEvents, getStats24h } = require('../services/monitorService');
 
+const { requirePermission } = require('../middleware/rbac');
+
 var router = express.Router();
 
 // serve the HTML page
-router.get('/admin/live-monitoring', function (req, res) {
+router.get('/admin/live-monitoring', requirePermission('view_monitoring'), function (req, res) {
     res.sendFile(path.join(__dirname, '..', 'views', 'live-monitoring.html'));
 });
 
 // SSE stream — browser connects here and receives live events
-router.get('/api/monitor/stream', function (req, res) {
+router.get('/api/monitor/stream', requirePermission('view_monitoring'), function (req, res) {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -36,7 +38,7 @@ router.get('/api/monitor/stream', function (req, res) {
 });
 
 // REST: return recent events for initial page load
-router.get('/api/monitor/events', async function (req, res) {
+router.get('/api/monitor/events', requirePermission('view_monitoring'), async function (req, res) {
     try {
         var events = await getRecentEvents(parseInt(req.query.limit) || 100);
         res.json(events);
@@ -46,7 +48,7 @@ router.get('/api/monitor/events', async function (req, res) {
 });
 
 // REST: 24h summary stats for the KPI cards
-router.get('/api/monitor/stats', async function (req, res) {
+router.get('/api/monitor/stats', requirePermission('view_monitoring'), async function (req, res) {
     try {
         var stats = await getStats24h();
         res.json(stats);

@@ -302,13 +302,8 @@
             <div>
                 <div class="card">
                     <h3>Quick Actions</h3>
-                    <div class="actions-grid">
-                        <a href="/mapping" class="action-btn">User Management</a>
-                        <a href="/admin/live-monitoring" class="action-btn">Live Monitor</a>
-                        <a href="/register-device" class="action-btn">Device Registry</a>
-                        <a href="/network" class="action-btn">IP Rules</a>
-                        <a href="/risk" class="action-btn">Risk Score</a>
-                        <a href="/profile" class="action-btn">My Profile</a>
+                    <div class="actions-grid" id="quickActions">
+                        <!-- filled by JS -->
                     </div>
                 </div>
             </div>
@@ -448,7 +443,7 @@
 
                 // greeting
                 document.getElementById('greetingText').textContent =
-                    getGreeting() + ', ' + d.user.username + ' · SuperAdmin';
+                    getGreeting() + ', ' + d.user.username + ' · ' + d.user.role;
 
                 // personal risk badge
                 var risk = d.security;
@@ -463,6 +458,27 @@
                     '<div><strong>Login Country:</strong> ' + (d.security.loginContext.country || '-') + '</div>' +
                     '<div><strong>Device:</strong> ' + (d.security.loginContext.isNewDevice ? 'New (unrecognised)' : 'Known') + '</div>' +
                     '<div><strong>Sessions:</strong> ' + d.security.sessionCount + '</div>';
+
+                // build quick actions
+                var actions = [
+                    { label: 'My Profile', link: '/profile' },
+                    { label: 'Risk Score', link: '/risk' }
+                ];
+
+                if (d.user.role === 'SuperAdmin' || d.user.role === 'HR') {
+                    actions.unshift({ label: 'User Management', link: '/mapping' });
+                    actions.push({ label: 'Device Registry', link: '/register-device' });
+                }
+                if (d.user.role === 'SuperAdmin' || d.user.role === 'IT') {
+                    actions.push({ label: 'Live Monitor', link: '/admin/live-monitoring' });
+                }
+                if (d.user.role === 'SuperAdmin') {
+                    actions.push({ label: 'IP Rules', link: '/network' });
+                }
+
+                document.getElementById('quickActions').innerHTML = actions.map(function(a) {
+                    return '<a href="' + a.link + '" class="action-btn">' + a.label + '</a>';
+                }).join('');
 
                 // load admin stats (SuperAdmin only)
                 if (d.user.role === 'SuperAdmin') {
