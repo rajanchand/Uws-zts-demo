@@ -6,213 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Zero Trust Security </title>
     <link rel="stylesheet" href="/css/style.css">
-    <style>
-        /* SuperAdmin dashboard  */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 14px;
-        }
 
-        .kpi-card {
-            background: #fff;
-            border-radius: 8px;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            border-left: 4px solid transparent;
-        }
-
-        .kpi-card.blue {
-            border-left-color: #0984e3;
-        }
-
-        .kpi-card.green {
-            border-left-color: #27ae60;
-        }
-
-        .kpi-card.red {
-            border-left-color: #e74c3c;
-        }
-
-        .kpi-card.orange {
-            border-left-color: #e67e22;
-        }
-
-        .kpi-card.purple {
-            border-left-color: #8e44ad;
-        }
-
-        .kpi-card.teal {
-            border-left-color: #16a085;
-        }
-
-        .kpi-icon {
-            font-size: 1.5rem;
-            min-width: 40px;
-            text-align: center;
-        }
-
-        .kpi-label {
-            font-size: 0.72rem;
-            color: #636e72;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            margin-bottom: 2px;
-        }
-
-        .kpi-value {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: #2d3436;
-            line-height: 1;
-        }
-
-        .kpi-sub {
-            font-size: 0.72rem;
-            color: #aaa;
-            margin-top: 2px;
-        }
-
-        /* two-column layout */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr 340px;
-            gap: 12px;
-            align-items: start;
-        }
-
-        /* event badge */
-        .event-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
-            font-size: 0.82rem;
-        }
-
-        .event-row:last-child {
-            border-bottom: none;
-        }
-
-        .event-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #dfe6e9;
-            flex-shrink: 0;
-        }
-
-        .event-dot.red {
-            background: #e74c3c;
-        }
-
-        .event-dot.orange {
-            background: #e67e22;
-        }
-
-        .event-dot.green {
-            background: #27ae60;
-        }
-
-        .event-dot.blue {
-            background: #0984e3;
-        }
-
-        .event-time {
-            color: #b2bec3;
-            font-size: 0.7rem;
-            min-width: 50px;
-        }
-
-        .event-msg {
-            color: #2d3436;
-            flex-grow: 1;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* actions icons */
-        .actions-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-        }
-
-        .action-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 12px;
-            border-radius: 8px;
-            background: #f8f9fa;
-            border: 1px solid #eee;
-            color: #2d3436;
-            text-decoration: none;
-            transition: all 0.2s;
-            text-align: center;
-        }
-
-        .action-item:hover {
-            background: #fff;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-            border-color: #0984e3;
-            transform: translateY(-2px);
-        }
-
-        .action-item i {
-            font-size: 1.4rem;
-            margin-bottom: 6px;
-        }
-
-        .action-item div {
-            font-size: 0.72rem;
-            font-weight: 600;
-        }
-
-        /* RISK meter  */
-        .risk-gauge {
-            width: 100%;
-            height: 8px;
-            background: #eee;
-            border-radius: 4px;
-            margin: 10px 0;
-            overflow: hidden;
-        }
-
-        .risk-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.5s ease;
-        }
-
-        .risk-low { background: #27ae60; }
-        .risk-med { background: #e67e22; }
-        .risk-high { background: #e74c3c; }
-
-        .hidden {
-            display: none !important;
-        }
-
-        /* Alert banner */
-        .alert-banner {
-            background: #fff5f5;
-            color: #c53030;
-            padding: 12px 16px;
-            border-radius: 8px;
-            border-left: 4px solid #f56565;
-            margin-bottom: 16px;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-    </style>
 </head>
 
 <body>
@@ -224,6 +18,19 @@
     </nav>
 
     <div class="container">
+        <!-- Welcome Banner -->
+        <div class="card" style="background: #ffffff; margin-bottom: 24px; border-left: 6px solid #0984e3; display: flex; justify-content: space-between; align-items: center; padding: 24px;">
+            <div>
+                <h2 style="margin: 0 0 8px 0; font-size: 1.6rem; font-weight: 700; color: #1e293b;">Welcome to Zero Trust Security, <span id="welcomeName" style="color: #0984e3;"></span></h2>
+                <div style="font-size: 0.85rem; color: #64748b; display: flex; gap: 20px; flex-wrap: wrap; margin-top: 12px;">
+                    <span style="display: flex; align-items: center; gap: 6px;">Role: <strong id="welcomeRole" style="background: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 6px; font-weight: 600;"></strong></span>
+                    <span style="display: flex; align-items: center; gap: 6px;">Login Time: <strong id="welcomeTime" style="color: #334155;"></strong></span>
+                    <span style="display: flex; align-items: center; gap: 6px;">Address: <strong id="welcomeIP" style="color: #334155;"></strong></span>
+                    <span style="display: flex; align-items: center; gap: 6px;">Zone: <strong id="welcomeZone" style="color: #334155;"></strong></span>
+                </div>
+            </div>
+        </div>
+
         <!-- Alert Banner -->
         <div id="alertBanner" class="alert-banner hidden">
             <strong>Attention:</strong> <span id="alertText"></span>
@@ -266,8 +73,7 @@
                         </div>
                         <a href="/admin/live-monitoring" class="btn btn-sm" style="background:#27ae60;color:#fff;border:none;">Open Dashboard →</a>
                     </div>
-                    <p style="font-size:0.8rem; color:#636e72; margin-bottom:14px;">Real-time security event stream — NIST SP 800-207 Policy Enforcement Point</p>
-                    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;" id="monitorQuickStats">
+                    <div class="grid-cols-3" style="gap:10px; margin-top: 14px;" id="monitorQuickStats">
                         <div style="background:#fff;border-radius:8px;padding:12px;border:1px solid #e2e8f0;text-align:center;">
                             <div style="font-size:1.4rem;font-weight:700;color:#2d3436;" id="mqTotal">—</div>
                             <div style="font-size:0.7rem;color:#636e72;">Events (24h)</div>
@@ -354,6 +160,13 @@
                     location.href = '/login';
                     return;
                 }
+
+                // Populate Welcome Banner
+                document.getElementById('welcomeName').textContent = data.user.username;
+                document.getElementById('welcomeRole').textContent = data.user.role;
+                document.getElementById('welcomeTime').textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                document.getElementById('welcomeIP').textContent = data.ip || 'Unknown';
+                document.getElementById('welcomeZone').textContent = data.country || 'Unknown';
 
                 buildNavbar(data.user.role, 'dashboard', data.user.username, data.user.permissions);
                 

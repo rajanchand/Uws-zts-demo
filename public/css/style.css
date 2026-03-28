@@ -251,11 +251,16 @@ body {
 
 .card {
   background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.02);
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.03);
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -4px rgba(0,0,0,0.02);
 }
 
 .card h3 {
@@ -599,8 +604,8 @@ td .btn {
   width: 100%;
   max-width: 420px;
   text-align: center;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
 }
 
 .auth-card h1 {
@@ -866,6 +871,177 @@ td .btn {
 }
 
 /* ======================== */
+/* DASHBOARD KPI & GRIDS    */
+/* ======================== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.kpi-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid #f1f5f9;
+  border-left: 4px solid transparent;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.kpi-card.blue { border-left-color: #0984e3; }
+.kpi-card.green { border-left-color: #27ae60; }
+.kpi-card.red { border-left-color: #e74c3c; }
+.kpi-card.orange { border-left-color: #e67e22; }
+.kpi-card.purple { border-left-color: #8e44ad; }
+.kpi-card.teal { border-left-color: #16a085; }
+
+.kpi-icon {
+  font-size: 1.6rem;
+  min-width: 44px;
+  text-align: center;
+}
+
+.kpi-label {
+  font-size: 0.72rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.kpi-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.kpi-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  text-decoration: none;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.action-item:hover {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-color: #0984e3;
+  transform: translateY(-2px);
+  color: #0984e3;
+}
+
+.action-item i {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.event-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.85rem;
+}
+
+.event-row:last-child {
+  border-bottom: none;
+}
+
+.event-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  flex-shrink: 0;
+}
+.event-dot.red { background: #ef4444; }
+.event-dot.orange { background: #f59e0b; }
+.event-dot.green { background: #10b981; }
+.event-dot.blue { background: #3b82f6; }
+
+.event-time {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  min-width: 55px;
+}
+
+.event-msg {
+  color: #334155;
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.risk-gauge {
+  width: 100%;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  margin: 12px 0;
+  overflow: hidden;
+}
+
+.risk-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.risk-low { background: #10b981; }
+.risk-med { background: #f59e0b; }
+.risk-high { background: #ef4444; }
+
+.hidden { display: none !important; }
+
+/* Reusable Grid Utilities */
+.grid-cols-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.grid-cols-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+/* ======================== */
 /* STATS GRID               */
 /* ======================== */
 .stats-grid {
@@ -985,6 +1161,10 @@ input:disabled {
     gap: 8px;
   }
 
+  .grid-cols-4, .grid-cols-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .profile-fields-grid {
     grid-template-columns: 1fr;
   }
@@ -1012,6 +1192,10 @@ input:disabled {
 
 @media (max-width: 480px) {
   .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-cols-4, .grid-cols-3 {
     grid-template-columns: 1fr;
   }
 
