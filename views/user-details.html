@@ -355,7 +355,14 @@
                         
                         let factorsStr = '-';
                         if (r.factors_json) {
-                            try { factorsStr = typeof r.factors_json === 'string' ? JSON.parse(r.factors_json).join(', ') : r.factors_json.join(', '); } catch(e) { factorsStr = r.factors_json; }
+                            try {
+                                let parsed = typeof r.factors_json === 'string' ? JSON.parse(r.factors_json) : r.factors_json;
+                                if (Array.isArray(parsed)) {
+                                    factorsStr = parsed.map(f => typeof f === 'object' ? `${f.factor} (+${f.points})` : f).join(', ');
+                                } else {
+                                    factorsStr = JSON.stringify(parsed);
+                                }
+                            } catch(e) { factorsStr = r.factors_json; }
                         }
                         
                         return `
@@ -398,7 +405,7 @@
             fetch('/api/admin/user/' + targetUserId + '/device-health')
                 .then(r => r.json())
                 .then(data => {
-                    var devs = data.devices || [];
+                    var devs = (data.deviceHealth && data.deviceHealth.devices) ? data.deviceHealth.devices : [];
                     if(!data.error) {
                         document.getElementById('kpiDevices').textContent = devs.length;
                     }
