@@ -22,6 +22,7 @@ var SEVERITY = {
     DEVICE_NEW: 'MEDIUM',
     LOCATION_NEW: 'MEDIUM',
     VPN_DETECTED: 'HIGH',
+    OFF_HOURS_LOGIN: 'HIGH',
     IMPOSSIBLE_TRAVEL: 'CRITICAL',
     RISK_SCORE_CHANGED: 'MEDIUM',
     USER_BLOCKED: 'HIGH',
@@ -181,6 +182,7 @@ async function getStats24h() {
         blocked: rows.filter(e => e.event_type === 'USER_BLOCKED').length,
         access_denied: rows.filter(e => e.event_type === 'ACCESS_DENIED').length,
         vpn_detected: rows.filter(e => e.event_type === 'VPN_DETECTED').length,
+        off_hours: rows.filter(e => e.event_type === 'OFF_HOURS_LOGIN').length,
         active_users: uniqueUsers.size,
         avg_risk: rows.length
             ? Math.round(rows.reduce((s, e) => s + (e.risk_score || 0), 0) / rows.length)

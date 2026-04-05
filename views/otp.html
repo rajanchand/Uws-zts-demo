@@ -6,6 +6,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OTP Verification - ZTS</title>
     <link rel="stylesheet" href="/css/style.css?v=6">
+    <style>
+        .off-hours-notice {
+            display: none;
+            background: linear-gradient(135deg, #fff8e1, #fff3cd);
+            border: 1.5px solid #f39c12;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            font-size: 0.8rem;
+            color: #7f4f00;
+            line-height: 1.5;
+        }
+        .off-hours-notice strong {
+            color: #d35400;
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+        }
+        .vpn-notice {
+            display: none;
+            background: linear-gradient(135deg, #fdebd0, #fce3c8);
+            border: 1.5px solid #e67e22;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            font-size: 0.8rem;
+            color: #7f3f00;
+        }
+        .vpn-notice strong {
+            color: #e67e22;
+            display: block;
+            margin-bottom: 4px;
+        }
+    </style>
 </head>
 
 <body>
@@ -15,8 +49,20 @@
             <h2>Multi-Factor Authentication</h2>
 
             <p style="font-size:0.875rem; color:#64748b; margin-bottom:16px;">
-                Enter the 6-digit code sent to your email
+                Enter the 6-digit code sent to your registered email
             </p>
+
+            <!-- Off-hours notice (shown if login was outside working hours) -->
+            <div class="off-hours-notice" id="offHoursNotice">
+                <strong>⚠️ Off-Hours Login Detected</strong>
+                <span id="offHoursDetail">You are logging in outside of working hours (08:00–18:00 BST). As per ZTS policy, OTP verification is mandatory and your risk score has been elevated.</span>
+            </div>
+
+            <!-- VPN notice -->
+            <div class="vpn-notice" id="vpnNotice">
+                <strong>🔒 VPN Connection Detected</strong>
+                OTP verification is required when connecting via VPN. This event has been logged in the security monitoring system.
+            </div>
 
             <div class="otp-display">
                 <p style="font-size:0.85rem; color:#475569; margin:0 0 4px;">📧 OTP sent to your registered email</p>
@@ -32,7 +78,7 @@
                         autocomplete="one-time-code"
                         style="text-align:center; font-size:1.5rem; letter-spacing:8px; font-weight: 600;">
                 </div>
-                <button type="submit" class="btn btn-primary">Verify & Sign In</button>
+                <button type="submit" class="btn btn-primary">Verify &amp; Sign In</button>
             </form>
 
             <p id="errorMsg" class="error-msg" style="display:none;"></p>
@@ -45,10 +91,29 @@
 
     <script src="/js/app.js?v=5"></script>
     <script>
-        var riskScore = sessionStorage.getItem('riskScore') || '0';
-        var riskLevel = sessionStorage.getItem('riskLevel') || 'Low';
+        var riskScore  = sessionStorage.getItem('riskScore') || '0';
+        var riskLevel  = sessionStorage.getItem('riskLevel') || 'Low';
+        var isOffHours = sessionStorage.getItem('isOffHours') === '1';
+        var offHoursMessage = sessionStorage.getItem('offHoursMessage') || '';
+
         var riskColor = riskLevel === 'Low' ? 'score-low' : riskLevel === 'Medium' ? 'score-medium' : 'score-high';
-        document.getElementById('riskInfo').innerHTML = 'Session Risk: <span class="' + riskColor + '" style="font-weight: 600;">' + riskLevel + ' (' + riskScore + '/100)</span>';
+        document.getElementById('riskInfo').innerHTML =
+            'Session Risk: <span class="' + riskColor + '" style="font-weight: 600;">' + riskLevel + ' (' + riskScore + '/100)</span>';
+
+        // Show off-hours notice if flagged
+        if (isOffHours) {
+            var notice = document.getElementById('offHoursNotice');
+            notice.style.display = 'block';
+            if (offHoursMessage) {
+                document.getElementById('offHoursDetail').textContent = offHoursMessage;
+            }
+        }
+
+        // Show VPN notice if risk factors contain VPN (stored in sessionStorage or from risk level being elevated)
+        // We detect VPN by checking if risk is elevated but not off hours
+        if (!isOffHours && parseInt(riskScore) >= 40) {
+            // Could be VPN or new device — show generic elevated risk notice
+        }
 
         document.getElementById('otpForm').addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -63,15 +128,15 @@
                 var result = await postJSON('/verify-otp', { code: code });
 
                 if (result.success) {
-                    // clear risk score from session storage
+                    // clear session flags
                     sessionStorage.removeItem('riskScore');
                     sessionStorage.removeItem('riskLevel');
-                    // navigate to dashboard
+                    sessionStorage.removeItem('isOffHours');
+                    sessionStorage.removeItem('offHoursMessage');
                     window.location.href = result.redirect || '/dashboard';
                 } else {
                     errorEl.textContent = result.message || 'Invalid code. Please try again.';
                     errorEl.style.display = 'block';
-                    // clear the input so user can retype
                     document.getElementById('otpInput').value = '';
                     document.getElementById('otpInput').focus();
                 }

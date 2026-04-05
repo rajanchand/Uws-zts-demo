@@ -3,20 +3,48 @@
 
 var nodemailer = require('nodemailer');
 
-// create transporter — uses env variables so credentials stay out of code
-var transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.SMTP_EMAIL,
-        pass: process.env.SMTP_PASSWORD  // use a Gmail App Password,
+// Lazy-init transporter so env vars are always fresh when called
+// (avoids stale credentials if .env is loaded after module init)
+function createTransporter() {
+    return nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.SMTP_EMAIL,
+            pass: process.env.SMTP_PASSWORD  // must be a Gmail App Password (16 chars, no spaces)
+        }
+    });
+}
+
+// Verify SMTP config on startup — logs clearly so you know early if email will work
+(function verifySMTPOnStartup() {
+    if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
+        console.warn('[email] WARNING: SMTP_EMAIL or SMTP_PASSWORD not set. Emails will not be sent.');
+        return;
     }
-});
+    var t = createTransporter();
+    t.verify(function (err) {
+        if (err) {
+            console.error('[email] SMTP Authentication FAILED:', err.message);
+            console.error('[email] -> Check your Gmail App Password at https://myaccount.google.com/apppasswords');
+            console.error('[email] -> OTPs will be printed to the server console as a fallback.');
+        } else {
+            console.log('[email] SMTP connection verified. Emails will be sent to Gmail.');
+        }
+    });
+})();
 
 // send the OTP email to the user
 async function sendOTPEmail(toEmail, username, otpCode) {
     // if no email credentials set, just log to console (dev mode)
     if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
-        console.log('  [email] No SMTP config — OTP for ' + username + ': ' + otpCode);
+        console.log('');
+        console.log('============================================================');
+        console.log('  [OTP FALLBACK] No SMTP config — printing OTP to console');
+        console.log('  User     : ' + username);
+        console.log('  Email    : ' + toEmail);
+        console.log('  OTP Code : ' + otpCode);
+        console.log('============================================================');
+        console.log('');
         return { sent: false, reason: 'No SMTP credentials configured' };
     }
 
@@ -35,11 +63,12 @@ async function sendOTPEmail(toEmail, username, otpCode) {
         '  <p style="font-size:13px;color:#636e72;">This code expires in <strong>5 minutes</strong>. Do not share it with anyone.</p>',
         '  <p style="font-size:13px;color:#636e72;">If you did not try to log in, please contact your administrator immediately.</p>',
         '  <hr style="border:none;border-top:1px solid #eee;margin:16px 0;">',
-        '  <p style="font-size:11px;color:#b2bec3;">ZTS — Zero Trust Security Demo  for testing purpose only&nbsp;|&nbsp; NIST SP 800-207</p>',
+        '  <p style="font-size:11px;color:#b2bec3;">ZTS — Zero Trust Security Demo &nbsp;|&nbsp; NIST SP 800-207</p>',
         '</div>'
     ].join('\n');
 
     try {
+        var transporter = createTransporter();
         await transporter.sendMail({
             from: '"ZTS Security" <' + process.env.SMTP_EMAIL + '>',
             to: toEmail,
@@ -49,7 +78,19 @@ async function sendOTPEmail(toEmail, username, otpCode) {
         console.log('  [email] OTP sent to ' + toEmail);
         return { sent: true };
     } catch (err) {
-        console.error('  [email] Failed to send to ' + toEmail + ':', err.message);
+        console.error('  [email] Failed to send OTP to ' + toEmail + ':', err.message);
+        // FALLBACK: always print OTP to console so login is never fully broken
+        console.log('');
+        console.log('============================================================');
+        console.log('  [OTP FALLBACK] Email failed — printing OTP to console');
+        console.log('  User     : ' + username);
+        console.log('  Email    : ' + toEmail);
+        console.log('  OTP Code : ' + otpCode);
+        console.log('  Fix      : Update SMTP_PASSWORD in .env with a valid');
+        console.log('             Gmail App Password from:');
+        console.log('             https://myaccount.google.com/apppasswords');
+        console.log('============================================================');
+        console.log('');
         return { sent: false, reason: err.message };
     }
 }
@@ -82,6 +123,7 @@ async function sendLoginAlertEmail(username, ip, country) {
     ].join('\n');
 
     try {
+        var transporter = createTransporter();
         await transporter.sendMail({
             from: '"ZTS Security Alerts" <' + process.env.SMTP_EMAIL + '>',
             to: adminEmail,
@@ -95,6 +137,7 @@ async function sendLoginAlertEmail(username, ip, country) {
         return { sent: false, reason: err.message };
     }
 }
+
 // send an anomaly alert email specifically for new locations/IPs/devices
 async function sendAnomalyAlertEmail(username, ip, country, anomalyReason) {
     var adminEmail = 'rajanchand@zero-trust-security.org'; // Hardcoded per requirement
@@ -126,6 +169,7 @@ async function sendAnomalyAlertEmail(username, ip, country, anomalyReason) {
     ].join('\n');
 
     try {
+        var transporter = createTransporter();
         await transporter.sendMail({
             from: '"ZTS Security Alerts" <' + process.env.SMTP_EMAIL + '>',
             to: adminEmail,

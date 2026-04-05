@@ -217,6 +217,7 @@
         .evt-LOCATION_NEW      { color: #0984e3; }
 
         .evt-VPN_DETECTED,
+        .evt-OFF_HOURS_LOGIN,
         .evt-FORCE_LOGOUT      { color: #e67e22; }
 
         .evt-ROLE_CHANGED,
@@ -318,6 +319,10 @@
                 <div class="stat-value" id="statVpn">—</div>
                 <div class="stat-label">VPN Detected</div>
             </div>
+            <div class="stat-card orange">
+                <div class="stat-value" id="statOffHours">—</div>
+                <div class="stat-label">Off-Hours Logins</div>
+            </div>
             <div class="stat-card purple">
                 <div class="stat-value" id="statAccessDenied">—</div>
                 <div class="stat-label">Access Denied</div>
@@ -339,12 +344,13 @@
                 <option>OTP_SUCCESS</option>
                 <option>OTP_FAILED</option>
                 <option>ACCESS_DENIED</option>
+                <option>OFF_HOURS_LOGIN</option>
+                <option>VPN_DETECTED</option>
                 <option>ROLE_CHANGED</option>
                 <option>USER_CREATED</option>
                 <option>USER_DELETED</option>
                 <option>DEVICE_NEW</option>
                 <option>LOCATION_NEW</option>
-                <option>VPN_DETECTED</option>
                 <option>IMPOSSIBLE_TRAVEL</option>
                 <option>RISK_SCORE_CHANGED</option>
                 <option>USER_BLOCKED</option>
@@ -575,6 +581,7 @@
                 document.getElementById('statLoginFailed').textContent = data.login_failed  || 0;
                 document.getElementById('statBlocked').textContent     = data.blocked       || 0;
                 document.getElementById('statVpn').textContent         = data.vpn_detected  || 0;
+                document.getElementById('statOffHours').textContent    = data.off_hours     || 0;
                 document.getElementById('statAccessDenied').textContent= data.access_denied || 0;
                 document.getElementById('statAvgRisk').textContent     = data.avg_risk      || 0;
             } catch(e) {}

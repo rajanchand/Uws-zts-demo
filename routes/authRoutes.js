@@ -31,13 +31,25 @@ function isOfficeNetwork(ip) {
 }
 
 /**
- * Checks if the current time is within allowed working hours
+ * Checks if the current time is within allowed working hours (08:00–18:00 BST/London)
+ * BST = UTC+1 in summer, GMT = UTC+0 in winter.
+ * We use a fixed UTC offset of +1 for demo consistency.
  */
 function isWithinWorkingHours() {
-    const currentHour = new Date().getUTCHours();
-    const ALLOW_START = 0;   // 12:00 AM UTC
-    const ALLOW_END = 24;    // Allow all hours (adjust as needed)
-    return currentHour >= ALLOW_START && currentHour < ALLOW_END;
+    const now = new Date();
+    // Convert to BST (UTC+1) — use +0 for GMT during winter if needed
+    const bstHour = (now.getUTCHours() + 1) % 24;
+    const WORK_START = 8;  // 08:00
+    const WORK_END   = 18; // 18:00 (6 PM)
+    return bstHour >= WORK_START && bstHour < WORK_END;
+}
+
+/**
+ * Returns the current BST hour (UTC+1) for display
+ */
+function getBSTHour() {
+    const now = new Date();
+    return (now.getUTCHours() + 1) % 24;
 }
 
 /**
@@ -168,10 +180,10 @@ router.post('/login', loginLimiter, async (req, res) => {
         const rawIp = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.ip || '127.0.0.1';
         const ip = rawIp.split(',')[0].trim().replace('::ffff:', '');
 
-        const currentHour = new Date().getHours();
-        const isUnusualHours = currentHour >= 22 || currentHour < 6;
-
-        // Removed strict isWithinWorkingHours block, now handled by risk scoring points.
+        // --- Working Hours Check ---
+        const withinWorkingHours = isWithinWorkingHours();
+        const bstHour = getBSTHour();
+        const isUnusualHours = !withinWorkingHours;
 
         // 2. Check IP Blocklist
         const ipCheck = await checkIPBlockList(ip, username);
@@ -353,11 +365,12 @@ router.post('/login', loginLimiter, async (req, res) => {
         });
 
         // 13. Adaptive MFA Decision
-        if (risk.level === 'Low') {
+        // RULE 1: Working hours + same device + same IP + same country = Low risk = direct login
+        if (withinWorkingHours && risk.level === 'Low' && !deviceResult.isNew && !vpn) {
             req.session.otpVerified = true;
             const csrfToken = generateCSRFToken(req);
 
-            await logEvent(user.id, 'LOGIN_SUCCESS', `Logged in (Adaptive MFA: Low Risk ${risk.score}).`, ip);
+            await logEvent(user.id, 'LOGIN_SUCCESS', `Direct login (working hours, trusted device, Low Risk ${risk.score}).`, ip);
             await logSecurityEvent({
                 event_type: 'LOGIN_SUCCESS',
                 user_id: user.id,
@@ -365,7 +378,13 @@ router.post('/login', loginLimiter, async (req, res) => {
                 ip: ip,
                 location: country,
                 risk_score: risk.score,
-                details: { risk_level: 'Low', role: user.role, adaptive_mfa: 'bypassed', department: user.department }
+                details: {
+                    risk_level: 'Low',
+                    role: user.role,
+                    adaptive_mfa: 'bypassed',
+                    reason: 'Working hours + trusted device + known location',
+                    department: user.department
+                }
             });
 
             sendLoginAlertEmail(user.username, ip, country).catch(() => { });
@@ -378,11 +397,90 @@ router.post('/login', loginLimiter, async (req, res) => {
             });
         }
 
-        // Medium or High Risk: Require OTP
+        // RULE 2: VPN detected — always require OTP and log to monitoring
+        if (vpn) {
+            await logSecurityEvent({
+                event_type: 'VPN_DETECTED',
+                user_id: user.id,
+                username: user.username,
+                ip: ip,
+                location: country,
+                risk_score: risk.score,
+                details: { role: user.role, risk_level: risk.level, action: 'OTP required due to VPN' }
+            });
+        }
+
+        // RULE 3: Off-hours login — always require OTP, log the event, return warning to frontend
+        if (isUnusualHours) {
+            await logEvent(user.id, 'OFF_HOURS_LOGIN', `Login attempted outside working hours at BST hour ${bstHour}. Risk: ${risk.level} (${risk.score})`, ip);
+            await logSecurityEvent({
+                event_type: 'OFF_HOURS_LOGIN',
+                user_id: user.id,
+                username: user.username,
+                ip: ip,
+                location: country,
+                risk_score: risk.score,
+                details: {
+                    role: user.role,
+                    risk_level: risk.level,
+                    bst_hour: bstHour,
+                    working_hours: '08:00–18:00 BST',
+                    action: 'OTP required (off-hours policy)'
+                }
+            });
+
+            req.session.otpVerified = false;
+            req.session.isOffHours = true;
+            await generateOTP(user.id);
+
+            await logEvent(user.id, 'LOGIN_PASSWORD_OK', `Password verified. Off-hours OTP required. Risk: ${risk.level} (${risk.score})`, ip);
+            await logSecurityEvent({
+                event_type: 'OTP_SENT',
+                user_id: user.id,
+                username: user.username,
+                ip: ip,
+                location: country,
+                risk_score: risk.score,
+                details: { reason: 'Off-hours policy', risk_level: risk.level, role: user.role }
+            });
+
+            return res.json({
+                success: true,
+                risk: { score: risk.score, level: risk.level },
+                offHours: true,
+                offHoursMessage: `⚠️ Off-Hours Access Detected — You are logging in outside working hours (08:00–18:00 BST). Current time: ${bstHour}:${String(new Date().getUTCMinutes()).padStart(2,'0')} BST. Your risk score has been increased. An OTP has been sent to your email for verification.`,
+                redirect: '/otp'
+            });
+        }
+
+        // RULE 4: Medium or High risk (in working hours) — require OTP
+        if (risk.level !== 'Low') {
+            req.session.otpVerified = false;
+            await generateOTP(user.id);
+
+            await logEvent(user.id, 'LOGIN_PASSWORD_OK', `Password verified, OTP required. Risk: ${risk.level} (${risk.score})`, ip);
+            await logSecurityEvent({
+                event_type: 'OTP_SENT',
+                user_id: user.id,
+                username: user.username,
+                ip: ip,
+                location: country,
+                risk_score: risk.score,
+                details: { risk_level: risk.level, risk_factors: risk.factors, role: user.role }
+            });
+
+            return res.json({
+                success: true,
+                risk: { score: risk.score, level: risk.level },
+                redirect: '/otp'
+            });
+        }
+
+        // RULE 5: Low risk, working hours, but new device or VPN — still require OTP
         req.session.otpVerified = false;
         await generateOTP(user.id);
 
-        await logEvent(user.id, 'LOGIN_PASSWORD_OK', `Password verified, OTP required. Risk: ${risk.level} (${risk.score})`, ip);
+        await logEvent(user.id, 'LOGIN_PASSWORD_OK', `Password verified, OTP required (Low risk but new device/VPN). Risk: ${risk.level} (${risk.score})`, ip);
         await logSecurityEvent({
             event_type: 'OTP_SENT',
             user_id: user.id,
@@ -398,6 +496,7 @@ router.post('/login', loginLimiter, async (req, res) => {
             risk: { score: risk.score, level: risk.level },
             redirect: '/otp'
         });
+
 
     } catch (err) {
         console.error('Login error:', err);

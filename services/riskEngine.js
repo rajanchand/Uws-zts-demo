@@ -13,7 +13,7 @@ const RISK_WEIGHTS = {
     NEW_COUNTRY: 30,
     MULTIPLE_FAILURES: 20,
     VPN_ANONYMIZER: 40,
-    UNUSUAL_HOURS: 10,
+    UNUSUAL_HOURS: 35,       // ZTS Global: Off-hours login is a significant risk signal
     ADMIN_UNKNOWN_IP: 40,
     IMPOSSIBLE_TRAVEL: 60,   // Distinction item: High-velocity travel detected
     OFFICE_REWARD: -20       // Distinction item: Subtracted if from corporate IP

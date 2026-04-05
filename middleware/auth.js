@@ -102,7 +102,8 @@ async function requireLogin(req, res, next) {
 
             if (result) {
                 // 1. KILL SWITCH: Blocked or Suspended Accounts
-                if (result.status !== 'active') {
+                // Note: 'active_pending_approval' is a valid intermediate state — do NOT kick those users out
+                if (result.status === 'blocked' || result.status === 'suspended') {
                     await logSecurityEvent({
                         event_type: 'FORCE_LOGOUT',
                         user_id: req.session.userId,
